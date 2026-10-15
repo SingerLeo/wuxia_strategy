@@ -8,6 +8,11 @@ config_version=5
 
 config/name="武侠门派"
 config/features=PackedStringArray("4.7")
+run/main_scene="res://scenes/main.tscn"
+
+[autoload]
+
+Game="*res://src/game/game.gd"
 
 [display]
 
