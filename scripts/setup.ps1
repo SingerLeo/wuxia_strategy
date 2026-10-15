@@ -1,4 +1,4 @@
-<#
+﻿<#
 Windows 一键安装 + 检查：Godot 4 标准版、Git、VS Code(+godot-tools)、GUT
 用法：
   powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -CheckOnly   # 只检查，不改动
