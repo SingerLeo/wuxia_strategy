@@ -20,6 +20,11 @@ godot_console --headless --import
 godot_console --headless -s addons/gut/gut_cmdln.gd -gexit
 ```
 
+数值模拟报告（调平衡时用）：
+```
+godot_console --headless -s tools/sim_report.gd -- --n=500 --years=20 --seed=1
+```
+
 ## 约定
 - 游戏逻辑必须能在 `--headless` 下测试；随机数通过可注入的 RandomNumberGenerator，便于固定种子复现
 - 含中文的 `.ps1` 文件必须保存为带 BOM 的 UTF-8
