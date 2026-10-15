@@ -1,0 +1,23 @@
+# Godot 4 缓存与生成文件
+.godot/
+.mono/
+data_*/
+*.translation
+
+# 导出与构建产物
+build/
+export/
+*.exe
+*.pck
+*.apk
+*.aab
+
+# 编辑器与系统文件
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 本地覆盖配置
+*.local
+.env
