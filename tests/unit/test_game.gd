@@ -46,6 +46,43 @@ func test_end_xun_applies_plans_and_advances_time() -> void:
 	assert_signal_emitted(game, "log_added")
 
 
+func test_not_destroyed_at_start() -> void:
+	assert_false(game.sect.is_destroyed())
+	assert_false(game.over)
+
+
+func test_sect_destroyed_when_no_disciples() -> void:
+	game.sect.disciples.clear()
+	assert_true(game.sect.is_destroyed())
+
+
+func test_disbanding_everyone_ends_the_game() -> void:
+	watch_signals(game)
+	game.debug_disband_all()
+	assert_true(game.over)
+	assert_signal_emitted(game, "game_over")
+
+
+func test_end_xun_does_nothing_after_game_over() -> void:
+	game.debug_disband_all()
+	var xun: int = game.sect.xun
+	game.end_xun()
+	assert_eq(game.sect.xun, xun)
+
+
+func test_new_game_clears_game_over() -> void:
+	game.debug_disband_all()
+	game.new_game(2)
+	assert_false(game.over)
+	assert_eq(game.sect.disciples.size(), game.INITIAL_DISCIPLES)
+
+
+func test_end_xun_detects_destruction() -> void:
+	game.sect.disciples.clear()
+	game.end_xun()
+	assert_true(game.over)
+
+
 func test_find_disciple() -> void:
 	assert_eq(game.find_disciple(3).id, 3)
 	assert_null(game.find_disciple(999))

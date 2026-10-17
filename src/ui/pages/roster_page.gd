@@ -67,6 +67,11 @@ func refresh() -> void:
 	if to_select:
 		to_select.select(0)
 		_show_detail(to_select.get_metadata(0))
+	elif Game.sect.disciples.is_empty():
+		_selected_id = -1
+		for c in _detail.get_children():
+			_detail.remove_child(c)
+			c.queue_free()
 
 
 func _plan_text(id: int) -> String:

@@ -12,6 +12,8 @@ var _log: RichTextLabel
 var _sect_label: Label
 var _date_label: Label
 var _silver_label: Label
+var _end_button: Button
+var _overlay: Control
 
 
 func _ready() -> void:
@@ -41,12 +43,23 @@ func _ready() -> void:
 	root.add_child(_build_bottom_bar())
 
 	_register_pages()
+	_build_game_over_overlay()
 
 	Game.state_changed.connect(_on_state_changed)
 	Game.log_added.connect(_on_log_added)
 	_on_log_added("欢迎来到" + Game.sect.sect_name + "。为弟子安排本旬事务，然后点击「结束本旬」。")
 	_update_header()
 	show_page(0)
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	# 开发用：F9 遣散全部弟子，查看灭亡界面
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F9:
+		Game.debug_disband_all()
+
+
+func overlay_visible() -> bool:
+	return _overlay.visible
 
 
 func page_count() -> int:
@@ -140,13 +153,47 @@ func _build_bottom_bar() -> Control:
 	_log.bbcode_enabled = false
 	row.add_child(_log)
 
-	var end_btn := Button.new()
-	end_btn.text = "结束本旬  ▶"
-	end_btn.theme_type_variation = &"PrimaryButton"
-	end_btn.custom_minimum_size = Vector2(180, 0)
-	end_btn.pressed.connect(Game.end_xun)
-	row.add_child(end_btn)
+	_end_button = Button.new()
+	_end_button.text = "结束本旬  ▶"
+	_end_button.theme_type_variation = &"PrimaryButton"
+	_end_button.custom_minimum_size = Vector2(180, 0)
+	_end_button.pressed.connect(Game.end_xun)
+	row.add_child(_end_button)
 	return bar
+
+
+## 门派灭亡时盖在整个界面上的遮罩，只有"重新开始"一个出口
+func _build_game_over_overlay() -> void:
+	_overlay = ColorRect.new()
+	_overlay.color = Color(0, 0, 0, 0.72)
+	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_overlay.visible = false
+	add_child(_overlay)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_overlay.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(460, 0)
+	center.add_child(panel)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 16)
+	panel.add_child(box)
+
+	var title := Page.make_label("门派覆灭", &"Heading")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var sub := Page.make_label("再无弟子，山门已空。江湖不会记得这一派。", &"Muted")
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(sub)
+
+	var restart := Button.new()
+	restart.text = "重新开始"
+	restart.theme_type_variation = &"PrimaryButton"
+	restart.pressed.connect(Game.new_game)
+	box.add_child(restart)
 
 
 func _on_nav_toggled(on: bool, index: int) -> void:
@@ -155,6 +202,8 @@ func _on_nav_toggled(on: bool, index: int) -> void:
 
 
 func _on_state_changed() -> void:
+	_overlay.visible = Game.over
+	_end_button.disabled = Game.over
 	_update_header()
 	if _current >= 0:
 		_pages[_current].refresh()

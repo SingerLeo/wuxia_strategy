@@ -3,10 +3,13 @@ extends Node
 
 signal state_changed
 signal log_added(text: String)
+signal game_over
 
 const INITIAL_DISCIPLES := 12
 
 var sect: Sect
+## 门派已灭亡，本局结束；结束后不再推进回合，直到 new_game
+var over: bool = false
 ## 弟子 id -> 本旬修炼的属性；不在表内或为 &"" 表示休息
 var plans: Dictionary = {}
 
@@ -25,6 +28,7 @@ func new_game(seed_value: int = -1) -> void:
 	sect = Sect.new("青云门", rng)
 	sect.silver = 1000
 	plans.clear()
+	over = false
 	for i in INITIAL_DISCIPLES:
 		sect.add_disciple(DiscipleFactory.create(rng, i, NameGen.person(rng)))
 	state_changed.emit()
@@ -48,6 +52,8 @@ func set_plan(id: int, stat: StringName) -> void:
 
 
 func end_xun() -> void:
+	if over:
+		return
 	var training := {}
 	for id in plans:
 		var stat: StringName = plans[id]
@@ -60,4 +66,22 @@ func end_xun() -> void:
 			var stat: StringName = plans[d.id]
 			log_added.emit("%s 的%s提升了 %d 级，现为 %d。" % [d.display_name, UiText.STAT[stat], levels, d.stats[stat]])
 	log_added.emit("—— %s ——" % UiText.date_text(sect))
+	_check_destroyed()
 	state_changed.emit()
+
+
+## 调试用：遣散全部弟子，用来查看灭亡界面（界面里按 F9）
+func debug_disband_all() -> void:
+	if over:
+		return
+	sect.disciples.clear()
+	plans.clear()
+	_check_destroyed()
+	state_changed.emit()
+
+
+func _check_destroyed() -> void:
+	if not over and sect.is_destroyed():
+		over = true
+		log_added.emit("门派覆灭，再无弟子。")
+		game_over.emit()

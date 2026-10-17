@@ -18,6 +18,12 @@ func add_disciple(d: Disciple) -> void:
 	disciples.append(d)
 
 
+## 门派是否灭亡。目前只有一条规则：没有任何弟子。
+## 以后增删条件（掌门身亡、山门失守等）只改这里，见 docs/scope.md §4。
+func is_destroyed() -> bool:
+	return disciples.is_empty()
+
+
 func current_year() -> int:
 	return xun / Balance.XUN_PER_YEAR
 

@@ -35,6 +35,15 @@ func test_roster_lists_all_disciples_and_selects_first() -> void:
 	assert_eq(roster.selected_id(), Game.sect.disciples[0].id)
 
 
+func test_game_over_overlay_shows_and_restart_hides() -> void:
+	assert_false(main.overlay_visible())
+	Game.debug_disband_all()
+	assert_true(main.overlay_visible())
+	main.show_page(1)  # 名册为空时切换页面也不应报错
+	Game.new_game(3)
+	assert_false(main.overlay_visible())
+
+
 func test_end_xun_updates_pages_without_error() -> void:
 	main.show_page(1)
 	Game.set_plan(0, &"neili")
