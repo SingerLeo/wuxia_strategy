@@ -5,6 +5,8 @@ extends RefCounted
 var sect_name: String
 var xun: int = 0
 var silver: int = 0
+var prestige: int = 0  ## 声望：影响招生质量与外交
+var honor: int = 0     ## 荣耀值：支线任务等长期成就，见 docs/scope.md
 var disciples: Array[Disciple] = []
 var rng: RandomNumberGenerator
 

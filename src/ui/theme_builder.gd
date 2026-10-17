@@ -11,6 +11,7 @@ const TEXT := Color("#e8dfcc")
 const MUTED := Color("#8f8774")
 const GOLD := Color("#c9a45c")
 const GOLD_DARK := Color("#5a4a2b")
+const WARN := Color("#d1704f")
 
 const FONT_SIZE := 18
 
@@ -61,6 +62,7 @@ static func build() -> Theme:
 	t.set_stylebox("hover", "NavButton", box(PANEL_ALT, PANEL_ALT, 4, 1, 12))
 	t.set_stylebox("pressed", "NavButton", box(GOLD_DARK, GOLD, 4, 1, 12))
 	t.set_stylebox("hover_pressed", "NavButton", box(GOLD_DARK, GOLD, 4, 1, 12))
+	t.set_stylebox("disabled", "NavButton", box(PANEL, PANEL, 4, 1, 12))
 
 	# 主操作按钮
 	t.set_type_variation(&"PrimaryButton", &"Button")

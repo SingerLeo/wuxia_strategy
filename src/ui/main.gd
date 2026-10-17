@@ -14,6 +14,9 @@ var _date_label: Label
 var _silver_label: Label
 var _end_button: Button
 var _overlay: Control
+var _prestige_label: Label
+var _honor_label: Label
+var _locked_header_added := false
 
 
 func _ready() -> void:
@@ -53,9 +56,13 @@ func _ready() -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	# 开发用：F9 遣散全部弟子，查看灭亡界面
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F9:
-		Game.debug_disband_all()
+	if not (event is InputEventKey and event.pressed and not event.echo):
+		return
+	match event.keycode:
+		KEY_SPACE:
+			Game.end_xun()
+		KEY_F9:  # 开发用：遣散全部弟子，查看灭亡界面
+			Game.debug_disband_all()
 
 
 func overlay_visible() -> bool:
@@ -90,9 +97,28 @@ func show_page(index: int) -> void:
 func _register_pages() -> void:
 	_add_page("门派", SectPage.new())
 	_add_page("弟子", RosterPage.new())
+	_add_page("招收", PlaceholderPage.new("招收", "山门招生与候选人 —— 即将加入"))
+	_add_page("设施", PlaceholderPage.new("设施", "练武场、藏经阁等建设 —— 即将加入"))
 	_add_page("武学", PlaceholderPage.new("武学", "武学研修与路线选择 —— 即将加入"))
-	_add_page("江湖", PlaceholderPage.new("江湖", "势力、地图与外交 —— 即将加入"))
-	_add_page("事件", PlaceholderPage.new("事件", "江湖传闻与门内事务 —— 即将加入"))
+	# P1 的"反馈"类内容：先占位并锁定，见 docs/scope.md
+	_add_locked_nav("江湖")
+	_add_locked_nav("事件")
+
+
+func _add_locked_nav(title: String) -> void:
+	if not _locked_header_added:
+		_locked_header_added = true
+		var gap := Control.new()
+		gap.custom_minimum_size.y = 12
+		_nav_box.add_child(gap)
+		_nav_box.add_child(Page.make_label("  即将开放", &"Muted"))
+	var btn := Button.new()
+	btn.text = title
+	btn.disabled = true
+	btn.theme_type_variation = &"NavButton"
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.custom_minimum_size.y = 46
+	_nav_box.add_child(btn)
 
 
 func _add_page(title: String, page: Page) -> void:
@@ -128,6 +154,10 @@ func _build_top_bar() -> Control:
 	row.add_child(_date_label)
 	_silver_label = Page.make_label("")
 	row.add_child(_silver_label)
+	_prestige_label = Page.make_label("")
+	row.add_child(_prestige_label)
+	_honor_label = Page.make_label("")
+	row.add_child(_honor_label)
 	return bar
 
 
@@ -217,3 +247,5 @@ func _update_header() -> void:
 	_sect_label.text = Game.sect.sect_name
 	_date_label.text = UiText.date_text(Game.sect)
 	_silver_label.text = "银两 %d" % Game.sect.silver
+	_prestige_label.text = "声望 %d" % Game.sect.prestige
+	_honor_label.text = "荣耀 %d" % Game.sect.honor

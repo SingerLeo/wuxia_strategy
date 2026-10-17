@@ -6,6 +6,8 @@ signal log_added(text: String)
 signal game_over
 
 const INITIAL_DISCIPLES := 12
+const AUTO_TRAIN_MIN_STAMINA := 40   ## 批量修炼时，体力低于此值的弟子改为休息
+const IDLE_HEALTHY_STAMINA := 70     ## 休息中且体力不低于此值，视为"闲着"
 
 var sect: Sect
 ## 门派已灭亡，本局结束；结束后不再推进回合，直到 new_game
@@ -49,6 +51,37 @@ func plan_of(id: int) -> StringName:
 func set_plan(id: int, stat: StringName) -> void:
 	plans[id] = stat
 	state_changed.emit()
+
+
+## 批量安排：全部休息
+func rest_all() -> void:
+	for d in sect.disciples:
+		plans[d.id] = &""
+	state_changed.emit()
+
+
+## 批量安排：体力足够的弟子修炼各自当前最高的属性，其余休息
+func train_all_by_specialty() -> void:
+	for d in sect.disciples:
+		plans[d.id] = UiText.top_stat(d) if d.stamina >= AUTO_TRAIN_MIN_STAMINA else &""
+	state_changed.emit()
+
+
+## 本旬提醒：提示玩家可能遗漏的安排
+func reminders() -> Array[String]:
+	var out: Array[String] = []
+	var idle := 0
+	var tired := 0
+	for d in sect.disciples:
+		if d.stamina < Balance.LOW_STAMINA:
+			tired += 1
+		if plan_of(d.id) == &"" and d.stamina >= IDLE_HEALTHY_STAMINA:
+			idle += 1
+	if idle > 0:
+		out.append("%d 名体力充沛的弟子本旬尚未安排修炼。" % idle)
+	if tired > 0:
+		out.append("%d 名弟子体力不足，修炼效率减半，建议休息。" % tired)
+	return out
 
 
 func end_xun() -> void:

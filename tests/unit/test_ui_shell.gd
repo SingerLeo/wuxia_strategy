@@ -35,6 +35,39 @@ func test_roster_lists_all_disciples_and_selects_first() -> void:
 	assert_eq(roster.selected_id(), Game.sect.disciples[0].id)
 
 
+func test_roster_sorting_toggles_direction() -> void:
+	main.show_page(1)
+	var roster: RosterPage = main.get_page(1)
+	Game.sect.disciples[0].stamina = 10
+	Game.sect.disciples[1].stamina = 90
+	roster.sort_by(3)  # 体力升序
+	var asc := roster.row_ids()
+	assert_eq(asc[0], Game.sect.disciples[0].id, "体力最低的排最前")
+	roster.sort_by(3)  # 再点：降序
+	var desc := roster.row_ids()
+	assert_eq(desc[desc.size() - 1], asc[0], "降序时最低体力排最后")
+
+
+func test_roster_batch_buttons_change_plans() -> void:
+	main.show_page(1)
+	Game.train_all_by_specialty()
+	assert_ne(Game.plan_of(0), &"")
+	Game.rest_all()
+	assert_eq(Game.plan_of(0), &"")
+
+
+func test_space_ends_the_xun() -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.pressed = true
+	main._unhandled_key_input(ev)
+	assert_eq(Game.sect.xun, 1)
+
+
+func test_locked_nav_entries_are_disabled_and_not_pages() -> void:
+	assert_eq(main.page_count(), 5, "江湖/事件只是锁定的导航项，不算页面")
+
+
 func test_game_over_overlay_shows_and_restart_hides() -> void:
 	assert_false(main.overlay_visible())
 	Game.debug_disband_all()

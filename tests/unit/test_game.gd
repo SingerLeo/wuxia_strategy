@@ -46,6 +46,30 @@ func test_end_xun_applies_plans_and_advances_time() -> void:
 	assert_signal_emitted(game, "log_added")
 
 
+func test_train_all_by_specialty_uses_top_stat_and_skips_tired() -> void:
+	game.find_disciple(1).stamina = 10
+	game.train_all_by_specialty()
+	assert_eq(game.plan_of(0), UiText.top_stat(game.find_disciple(0)))
+	assert_eq(game.plan_of(1), &"", "体力不足者休息")
+
+
+func test_rest_all_clears_plans() -> void:
+	game.train_all_by_specialty()
+	game.rest_all()
+	for d in game.sect.disciples:
+		assert_eq(game.plan_of(d.id), &"")
+
+
+func test_reminders_flag_idle_and_tired() -> void:
+	var r: Array = game.reminders()
+	assert_eq(r.size(), 1, "开局全员体力充沛且在休息，只提示闲着")
+	game.find_disciple(0).stamina = 5
+	assert_eq(game.reminders().size(), 2)
+	game.find_disciple(0).stamina = 100
+	game.train_all_by_specialty()
+	assert_eq(game.reminders().size(), 0, "全部安排妥当则没有提醒")
+
+
 func test_not_destroyed_at_start() -> void:
 	assert_false(game.sect.is_destroyed())
 	assert_false(game.over)
