@@ -15,10 +15,11 @@ var _sort_asc: bool = true
 func _init() -> void:
 	super._init()
 	var split := HSplitContainer.new()
+	split.split_offset = -150  # 名册列表窄一些，把空间让给右侧的主要信息
 	add_child(split)
 
 	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 520
+	left.custom_minimum_size.x = 440
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.add_theme_constant_override("separation", 8)
 	split.add_child(left)
@@ -39,7 +40,7 @@ func _init() -> void:
 	left.add_child(_tree)
 
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.x = 420
+	scroll.custom_minimum_size.x = 600
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	split.add_child(scroll)
@@ -186,12 +187,17 @@ func _show_detail(id: int) -> void:
 
 	# 技能 / 属性 两列（数字为 1~20 分，鼠标悬停可看原始值与上限），右侧是六维雷达
 	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 36)
-	columns.add_child(_value_column("技能", Balance.SKILLS, UiText.SKILL, d, true))
-	columns.add_child(_value_column("属性", Balance.ATTRIBUTES, UiText.ATTR, d, false))
+	columns.add_theme_constant_override("separation", 28)
+	var skill_col := _value_column("技能", Balance.SKILLS, UiText.SKILL, d, true)
+	var attr_col := _value_column("属性", Balance.ATTRIBUTES, UiText.ATTR, d, false)
+	for col in [skill_col, attr_col]:
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.size_flags_stretch_ratio = 1.0
+		columns.add_child(col)
 
 	var radar_box := VBoxContainer.new()
 	radar_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	radar_box.size_flags_stretch_ratio = 1.8
 	radar_box.add_child(Page.make_label("综合", &"Subheading"))
 	_radar = RadarChart.new()
 	_radar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -221,7 +227,7 @@ func _show_detail(id: int) -> void:
 ## 一列"名称 + 分数"。with_cap 为真时，悬停提示里附带技能上限。
 func _value_column(title: String, keys: Array[StringName], names: Dictionary, d: Disciple, with_cap: bool) -> Control:
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 4)
+	col.add_theme_constant_override("separation", 6)
 	col.add_child(Page.make_label(title, &"Subheading"))
 	for key in keys:
 		var raw: int = Dimensions.value_of(d, key)
@@ -233,11 +239,13 @@ func _value_column(title: String, keys: Array[StringName], names: Dictionary, d:
 		row.tooltip_text = tip
 		row.add_theme_constant_override("separation", 8)
 		var name_label := Page.make_label(names[key], &"Muted")
-		name_label.custom_minimum_size.x = 76
+		name_label.add_theme_font_size_override("font_size", 20)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_label)
 		var num := Page.make_label(str(score))
+		num.add_theme_font_size_override("font_size", 24)
 		num.add_theme_color_override("font_color", _score_color(score))
-		num.custom_minimum_size.x = 32
+		num.custom_minimum_size.x = 40
 		num.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(num)
 		col.add_child(row)
