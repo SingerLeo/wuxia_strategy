@@ -30,7 +30,7 @@ func _initialize() -> void:
 	if page == 1 and steps > 0:
 		# 给前几名弟子安排修炼，让截图里有内容
 		for i in 5:
-			game.set_plan(i, Balance.STATS[i % Balance.STATS.size()])
+			game.set_plan(i, Balance.SKILLS[i % Balance.SKILLS.size()])
 	for i in steps:
 		game.end_xun()
 	main.show_page(page)

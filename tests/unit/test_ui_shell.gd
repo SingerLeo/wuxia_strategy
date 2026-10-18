@@ -79,7 +79,7 @@ func test_game_over_overlay_shows_and_restart_hides() -> void:
 
 func test_end_xun_updates_pages_without_error() -> void:
 	main.show_page(1)
-	Game.set_plan(0, &"neili")
+	Game.set_plan(0, &"neigong")
 	Game.end_xun()
 	assert_eq(Game.sect.xun, 1)
 	assert_eq((main.get_page(1) as RosterPage).row_count(), Game.sect.disciples.size())

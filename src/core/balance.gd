@@ -6,50 +6,67 @@ extends RefCounted
 const XUN_PER_YEAR := 12
 const XUN_PER_SEASON := 3
 
-# --- 属性 ---
+# --- 数值范围（技能、属性通用） ---
 const STAT_MIN := 1
 const STAT_MAX := 100
 
-## 资质：出生时确定，决定成长速度与上限
-const APTITUDES: Array[StringName] = [&"gengu", &"wuxing", &"shenfa", &"danshi", &"xinxing"]
-## 可成长属性：内力、外功、轻功、医术、谋略、口才
-const STATS: Array[StringName] = [&"neili", &"waigong", &"qinggong", &"yishu", &"moulue", &"kouca"]
-## 每项属性的上限受哪项资质影响
-const STAT_APTITUDE := {
-	&"neili": &"gengu",
-	&"waigong": &"gengu",
+## 属性类：悟性、根骨、身法、智谋、魅力、领导力、定力、亲和。
+## 出生时确定，决定学习效果、技能成长速度与上限，以及门派职位表现。
+const ATTRIBUTES: Array[StringName] = [
+	&"wuxing", &"gengu", &"shenfa", &"zhimou", &"meili", &"lingdao", &"dingli", &"qinhe",
+]
+## 技能类：直接决定武功威力，可通过修炼武学、实战提升。
+const SKILLS: Array[StringName] = [
+	&"jian", &"dao", &"gun", &"quan", &"neigong", &"qinggong", &"yishu", &"dugong",
+]
+## 每项技能主要受哪项属性影响（成长速度与上限）。悟性对所有技能都有影响。
+const SKILL_ATTRIBUTE := {
+	&"jian": &"shenfa",
+	&"dao": &"gengu",
+	&"gun": &"gengu",
+	&"quan": &"gengu",
+	&"neigong": &"gengu",
 	&"qinggong": &"shenfa",
-	&"yishu": &"wuxing",
-	&"moulue": &"wuxing",
-	&"kouca": &"danshi",
+	&"yishu": &"zhimou",
+	&"dugong": &"zhimou",
 }
 
 const TRAITS: Array[StringName] = [
 	&"孤傲", &"重义", &"贪财", &"好胜", &"胆小", &"沉稳", &"好学", &"圆滑",
 ]
 
+# --- 状态：最大值（占位公式，战斗做出来后再调） ---
+const HP_BASE := 60
+const HP_PER_GENGU := 0.8
+const NEILI_BASE := 20
+const NEILI_PER_SKILL := 2.0   ## 内力上限 = BASE + PER_SKILL × 内功等级
+
 # --- 新弟子生成 ---
-const APTITUDE_MEAN := 35.0
-const APTITUDE_DEV := 12.0
+const ATTRIBUTE_MEAN := 35.0
+const ATTRIBUTE_DEV := 12.0
 const POTENTIAL_MEAN := 60.0
 const POTENTIAL_DEV := 15.0
 const POTENTIAL_MIN := 20
-const INITIAL_STAT_RATIO := 0.7  ## 初始属性约为对应资质的 70%
-const INITIAL_STAT_DEV := 5.0
+const STARTER_SKILLS := 2            ## 每名新弟子有几项"入门所学"
+const INITIAL_MAJOR_RATIO := 0.7     ## 入门所学 ≈ 对应属性的 70%
+const INITIAL_MINOR_RATIO := 0.2     ## 其他技能 ≈ 对应属性的 20%
+const INITIAL_SKILL_DEV := 4.0
 const RECRUIT_AGE_MIN := 12
 const RECRUIT_AGE_MAX := 18
 
 # --- 修炼 ---
 const BASE_XP := 10.0
 const XP_THRESHOLD_BASE := 20.0
-const XP_THRESHOLD_PER_STAT := 1.0   ## 升级所需经验 = BASE + PER_STAT × 当前属性
-const CAP_APTITUDE_FLOOR := 0.7      ## 属性上限 = 潜力 × (FLOOR + (1-FLOOR) × 对应资质/100)
+const XP_THRESHOLD_PER_STAT := 1.0   ## 升级所需经验 = BASE + PER_STAT × 当前技能等级
+const CAP_ATTRIBUTE_FLOOR := 0.7     ## 技能上限 = 潜力 × (FLOOR + (1-FLOOR) × 对应属性/100)
+const RELATED_COEF_BASE := 0.7       ## 对应属性对成长速度的系数 = BASE + SPAN × 属性/100
+const RELATED_COEF_SPAN := 0.6       ## （属性 50 时为 1.0）
 const ERRATIC_MIN := 0.6
 const ERRATIC_MAX := 1.4
-const NEILI_AGE_FLOOR := 0.8         ## 内力在衰退期的成长倍率下限
+const NEIGONG_AGE_FLOOR := 0.8       ## 内功在衰退期的成长倍率下限
 const DECLINE_AGE := 40.0
 
-# --- 体力 ---
+# --- 体力（修炼疲劳） ---
 const STAMINA_MAX := 100
 const TRAIN_STAMINA_COST := 20
 const REST_STAMINA_GAIN := 35

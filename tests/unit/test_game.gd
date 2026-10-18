@@ -30,13 +30,13 @@ func test_default_plan_is_rest() -> void:
 
 func test_set_plan_emits_state_changed() -> void:
 	watch_signals(game)
-	game.set_plan(0, &"neili")
-	assert_eq(game.plan_of(0), &"neili")
+	game.set_plan(0, &"neigong")
+	assert_eq(game.plan_of(0), &"neigong")
 	assert_signal_emitted(game, "state_changed")
 
 
 func test_end_xun_applies_plans_and_advances_time() -> void:
-	game.set_plan(0, &"neili")
+	game.set_plan(0, &"neigong")
 	watch_signals(game)
 	game.end_xun()
 	assert_eq(game.sect.xun, 1)
@@ -46,10 +46,10 @@ func test_end_xun_applies_plans_and_advances_time() -> void:
 	assert_signal_emitted(game, "log_added")
 
 
-func test_train_all_by_specialty_uses_top_stat_and_skips_tired() -> void:
+func test_train_all_by_specialty_uses_top_skill_and_skips_tired() -> void:
 	game.find_disciple(1).stamina = 10
 	game.train_all_by_specialty()
-	assert_eq(game.plan_of(0), UiText.top_stat(game.find_disciple(0)))
+	assert_eq(game.plan_of(0), UiText.top_skill(game.find_disciple(0)))
 	assert_eq(game.plan_of(1), &"", "体力不足者休息")
 
 

@@ -13,7 +13,7 @@ func _make_sect(seed_value: int, count: int) -> Sect:
 func _plans_for(sect: Sect) -> Dictionary:
 	var plans := {}
 	for d in sect.disciples:
-		plans[d.id] = TrainingPlan.train(Balance.STATS[d.id % Balance.STATS.size()])
+		plans[d.id] = TrainingPlan.train(Balance.SKILLS[d.id % Balance.SKILLS.size()])
 	return plans
 
 
@@ -56,7 +56,7 @@ func test_whole_simulation_is_deterministic() -> void:
 		a.advance_xun(_plans_for(a))
 		b.advance_xun(_plans_for(b))
 	for i in a.disciples.size():
-		assert_eq(a.disciples[i].stats, b.disciples[i].stats, "弟子 %d 属性应一致" % i)
+		assert_eq(a.disciples[i].skills, b.disciples[i].skills, "弟子 %d 属性应一致" % i)
 		assert_eq(a.disciples[i].xp, b.disciples[i].xp)
 		assert_eq(a.disciples[i].stamina, b.disciples[i].stamina)
 
@@ -65,14 +65,14 @@ func test_five_years_of_training_makes_disciples_stronger() -> void:
 	var sect := _make_sect(11, 10)
 	var before := 0
 	for d in sect.disciples:
-		for s in Balance.STATS:
-			before += d.stats[s]
+		for s in Balance.SKILLS:
+			before += d.skills[s]
 	# 修炼 / 休息交替，避免体力长期见底
 	for i in 5 * Balance.XUN_PER_YEAR:
 		sect.advance_xun(_plans_for(sect) if i % 2 == 0 else {})
 	var after := 0
 	for d in sect.disciples:
-		for s in Balance.STATS:
-			after += d.stats[s]
-			assert_lte(d.stats[s], Growth.stat_cap(d, s), "任何时候都不超过上限")
+		for s in Balance.SKILLS:
+			after += d.skills[s]
+			assert_lte(d.skills[s], Growth.skill_cap(d, s), "任何时候都不超过上限")
 	assert_gt(after, before, "五年修炼后总属性应增长")

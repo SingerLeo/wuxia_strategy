@@ -55,9 +55,9 @@ func _parse_args() -> Dictionary:
 
 ## 上限最高的属性（并列取先出现的）
 func _best_stat(d: Disciple) -> StringName:
-	var best: StringName = Balance.STATS[0]
-	for s in Balance.STATS:
-		if Growth.stat_cap(d, s) > Growth.stat_cap(d, best):
+	var best: StringName = Balance.SKILLS[0]
+	for s in Balance.SKILLS:
+		if Growth.skill_cap(d, s) > Growth.skill_cap(d, best):
 			best = s
 	return best
 
@@ -67,8 +67,8 @@ func _snapshot(sect: Sect, focus: Dictionary) -> Array:
 	for d in sect.disciples:
 		var s: StringName = focus[d.id]
 		rows.append({
-			"value": d.stats[s],
-			"cap": Growth.stat_cap(d, s),
+			"value": d.skills[s],
+			"cap": Growth.skill_cap(d, s),
 			"curve": d.curve,
 			"age": d.age_years(),
 		})

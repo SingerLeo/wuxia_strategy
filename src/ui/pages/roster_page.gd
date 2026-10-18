@@ -103,8 +103,8 @@ func refresh() -> void:
 		item.set_metadata(0, d.id)
 		item.set_text(0, d.display_name)
 		item.set_text(1, str(int(d.age_years())))
-		var top := UiText.top_stat(d)
-		item.set_text(2, "%s %d" % [UiText.STAT[top], d.stats[top]])
+		var top := UiText.top_skill(d)
+		item.set_text(2, "%s %d" % [UiText.SKILL[top], d.skills[top]])
 		item.set_text(3, str(d.stamina))
 		item.set_text(4, _plan_text(d.id))
 		item.set_custom_color(4, ThemeBuilder.MUTED if Game.plan_of(d.id) == &"" else ThemeBuilder.GOLD)
@@ -136,7 +136,7 @@ func _sort_key(d: Disciple, col: int) -> Variant:
 	match col:
 		0: return d.display_name
 		1: return d.age_xun
-		2: return d.stats[UiText.top_stat(d)]
+		2: return d.skills[UiText.top_skill(d)]
 		3: return d.stamina
 		_: return _plan_text(d.id)
 
@@ -156,7 +156,7 @@ func _on_column_title_clicked(column: int, mouse_button: int) -> void:
 
 func _plan_text(id: int) -> String:
 	var stat := Game.plan_of(id)
-	return "休息" if stat == &"" else "修炼·" + UiText.STAT[stat]
+	return "休息" if stat == &"" else "修炼·" + UiText.SKILL[stat]
 
 
 func _on_item_selected() -> void:
@@ -186,30 +186,35 @@ func _show_detail(id: int) -> void:
 	_detail.add_child(Page.make_label("本旬安排", &"Subheading"))
 	_detail.add_child(_make_plan_option(d))
 
-	_detail.add_child(Page.make_label("属性", &"Subheading"))
-	for s in Balance.STATS:
-		_detail.add_child(Page.bar_row(UiText.STAT[s], d.stats[s], Balance.STAT_MAX, "%d / %d" % [d.stats[s], Growth.stat_cap(d, s)]))
+	_detail.add_child(Page.make_label("技能", &"Subheading"))
+	for s in Balance.SKILLS:
+		_detail.add_child(Page.bar_row(UiText.SKILL[s], d.skills[s], Balance.STAT_MAX, "%d / %d" % [d.skills[s], Growth.skill_cap(d, s)]))
 
-	_detail.add_child(Page.make_label("资质", &"Subheading"))
-	for a in Balance.APTITUDES:
-		_detail.add_child(Page.bar_row(UiText.APT[a], d.aptitudes[a], Balance.STAT_MAX, str(d.aptitudes[a])))
+	_detail.add_child(Page.make_label("属性", &"Subheading"))
+	for a in Balance.ATTRIBUTES:
+		_detail.add_child(Page.bar_row(UiText.ATTR[a], d.attributes[a], Balance.STAT_MAX, str(d.attributes[a])))
 
 	_detail.add_child(Page.make_label("状态", &"Subheading"))
+	var hp_max := Growth.max_hp(d)
+	var neili_max := Growth.max_neili(d)
+	_detail.add_child(Page.bar_row("生命", d.hp, hp_max, "%d / %d" % [d.hp, hp_max]))
+	_detail.add_child(Page.bar_row("内力", d.neili, neili_max, "%d / %d" % [d.neili, neili_max]))
 	_detail.add_child(Page.bar_row("体力", d.stamina, Balance.STAMINA_MAX, str(d.stamina)))
-	_detail.add_child(Page.bar_row("士气", d.morale, 100, str(d.morale)))
-	_detail.add_child(Page.bar_row("忠诚", d.loyalty, 100, str(d.loyalty)))
+	_detail.add_child(Page.bar_row("心情", d.mood, 100, str(d.mood)))
+	_detail.add_child(Page.bar_row("忠诚度", d.loyalty, 100, str(d.loyalty)))
+	_detail.add_child(Page.bar_row("威望", d.prestige, 100, str(d.prestige)))
 
 
 func _make_plan_option(d: Disciple) -> OptionButton:
 	var opt := OptionButton.new()
 	opt.add_item("休息")
-	for s in Balance.STATS:
-		opt.add_item("修炼·" + UiText.STAT[s])
+	for s in Balance.SKILLS:
+		opt.add_item("修炼·" + UiText.SKILL[s])
 	var current := Game.plan_of(d.id)
-	opt.select(0 if current == &"" else Balance.STATS.find(current) + 1)
+	opt.select(0 if current == &"" else Balance.SKILLS.find(current) + 1)
 	opt.item_selected.connect(_on_plan_selected.bind(d.id))
 	return opt
 
 
 func _on_plan_selected(index: int, id: int) -> void:
-	Game.set_plan(id, &"" if index == 0 else Balance.STATS[index - 1])
+	Game.set_plan(id, &"" if index == 0 else Balance.SKILLS[index - 1])
