@@ -184,19 +184,17 @@ func _show_detail(id: int) -> void:
 	var traits := "、".join(d.traits)
 	_detail.add_child(Page.make_label("性格：" + traits))
 
-	_detail.add_child(Page.make_label("本旬安排", &"Subheading"))
-	_detail.add_child(_make_plan_option(d))
-
-	# 上：技能 / 属性 两列，数字为 1~20 分（鼠标悬停可看原始值与上限）
+	# 技能 / 属性 两列（数字为 1~20 分，鼠标悬停可看原始值与上限），右侧是六维雷达
 	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 72)
+	columns.add_theme_constant_override("separation", 36)
 	columns.add_child(_value_column("技能", Balance.SKILLS, UiText.SKILL, d, true))
 	columns.add_child(_value_column("属性", Balance.ATTRIBUTES, UiText.ATTR, d, false))
-	_detail.add_child(columns)
 
-	# 下：六维雷达
-	_detail.add_child(Page.make_label("综合", &"Subheading"))
+	var radar_box := VBoxContainer.new()
+	radar_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	radar_box.add_child(Page.make_label("综合", &"Subheading"))
 	_radar = RadarChart.new()
+	_radar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var labels: Array[String] = []
 	var values: Array[float] = []
 	var texts: Array[String] = []
@@ -205,7 +203,9 @@ func _show_detail(id: int) -> void:
 		values.append(dim["value"] / Balance.STAT_MAX)
 		texts.append(str(UiText.score(dim["value"])))
 	_radar.set_data(labels, values, texts)
-	_detail.add_child(_radar)
+	radar_box.add_child(_radar)
+	columns.add_child(radar_box)
+	_detail.add_child(columns)
 
 	_detail.add_child(Page.make_label("状态", &"Subheading"))
 	var hp_max := Growth.max_hp(d)
@@ -254,18 +254,3 @@ static func _score_color(score: int) -> Color:
 
 func radar() -> RadarChart:
 	return _radar
-
-
-func _make_plan_option(d: Disciple) -> OptionButton:
-	var opt := OptionButton.new()
-	opt.add_item("休息")
-	for s in Balance.SKILLS:
-		opt.add_item("修炼·" + UiText.SKILL[s])
-	var current := Game.plan_of(d.id)
-	opt.select(0 if current == &"" else Balance.SKILLS.find(current) + 1)
-	opt.item_selected.connect(_on_plan_selected.bind(d.id))
-	return opt
-
-
-func _on_plan_selected(index: int, id: int) -> void:
-	Game.set_plan(id, &"" if index == 0 else Balance.SKILLS[index - 1])

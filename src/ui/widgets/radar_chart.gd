@@ -11,7 +11,7 @@ var _texts: Array[String] = []
 
 
 func _init() -> void:
-	custom_minimum_size = Vector2(380, 300)
+	custom_minimum_size = Vector2(300, 260)
 
 
 func set_data(labels: Array[String], values: Array[float], texts: Array[String]) -> void:
@@ -38,7 +38,7 @@ func _draw() -> void:
 	if n < 3:
 		return
 	var center := size / 2.0
-	var radius := minf(size.x * 0.5 - 70.0, size.y * 0.5 - 28.0)
+	var radius := minf(size.x * 0.5 - 56.0, size.y * 0.5 - 28.0)
 	if radius <= 10.0:
 		return
 
