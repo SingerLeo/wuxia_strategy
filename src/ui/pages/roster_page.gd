@@ -6,6 +6,7 @@ const COLUMNS: Array[String] = ["姓名", "年龄", "专长", "体力", "本旬�
 
 var _tree: Tree
 var _detail: VBoxContainer
+var _radar: RadarChart
 var _selected_id: int = -1
 var _sort_col: int = -1
 var _sort_asc: bool = true
@@ -186,13 +187,25 @@ func _show_detail(id: int) -> void:
 	_detail.add_child(Page.make_label("本旬安排", &"Subheading"))
 	_detail.add_child(_make_plan_option(d))
 
-	_detail.add_child(Page.make_label("技能", &"Subheading"))
-	for s in Balance.SKILLS:
-		_detail.add_child(Page.bar_row(UiText.SKILL[s], d.skills[s], Balance.STAT_MAX, "%d / %d" % [d.skills[s], Growth.skill_cap(d, s)]))
+	# 上：技能 / 属性 两列，数字为 1~20 分（鼠标悬停可看原始值与上限）
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 72)
+	columns.add_child(_value_column("技能", Balance.SKILLS, UiText.SKILL, d, true))
+	columns.add_child(_value_column("属性", Balance.ATTRIBUTES, UiText.ATTR, d, false))
+	_detail.add_child(columns)
 
-	_detail.add_child(Page.make_label("属性", &"Subheading"))
-	for a in Balance.ATTRIBUTES:
-		_detail.add_child(Page.bar_row(UiText.ATTR[a], d.attributes[a], Balance.STAT_MAX, str(d.attributes[a])))
+	# 下：六维雷达
+	_detail.add_child(Page.make_label("综合", &"Subheading"))
+	_radar = RadarChart.new()
+	var labels: Array[String] = []
+	var values: Array[float] = []
+	var texts: Array[String] = []
+	for dim in Dimensions.compute(d):
+		labels.append(dim["name"])
+		values.append(dim["value"] / Balance.STAT_MAX)
+		texts.append(str(UiText.score(dim["value"])))
+	_radar.set_data(labels, values, texts)
+	_detail.add_child(_radar)
 
 	_detail.add_child(Page.make_label("状态", &"Subheading"))
 	var hp_max := Growth.max_hp(d)
@@ -203,6 +216,44 @@ func _show_detail(id: int) -> void:
 	_detail.add_child(Page.bar_row("心情", d.mood, 100, str(d.mood)))
 	_detail.add_child(Page.bar_row("忠诚度", d.loyalty, 100, str(d.loyalty)))
 	_detail.add_child(Page.bar_row("威望", d.prestige, 100, str(d.prestige)))
+
+
+## 一列"名称 + 分数"。with_cap 为真时，悬停提示里附带技能上限。
+func _value_column(title: String, keys: Array[StringName], names: Dictionary, d: Disciple, with_cap: bool) -> Control:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	col.add_child(Page.make_label(title, &"Subheading"))
+	for key in keys:
+		var raw: int = Dimensions.value_of(d, key)
+		var score := UiText.score(raw)
+		var row := HBoxContainer.new()
+		var tip := "实际数值 %d" % raw
+		if with_cap:
+			tip += " / 上限 %d" % Growth.skill_cap(d, key)
+		row.tooltip_text = tip
+		row.add_theme_constant_override("separation", 8)
+		var name_label := Page.make_label(names[key], &"Muted")
+		name_label.custom_minimum_size.x = 76
+		row.add_child(name_label)
+		var num := Page.make_label(str(score))
+		num.add_theme_color_override("font_color", _score_color(score))
+		num.custom_minimum_size.x = 32
+		num.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(num)
+		col.add_child(row)
+	return col
+
+
+static func _score_color(score: int) -> Color:
+	if score >= 15:
+		return ThemeBuilder.GOLD
+	if score <= 5:
+		return ThemeBuilder.MUTED
+	return ThemeBuilder.TEXT
+
+
+func radar() -> RadarChart:
+	return _radar
 
 
 func _make_plan_option(d: Disciple) -> OptionButton:

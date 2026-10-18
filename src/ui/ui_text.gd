@@ -14,6 +14,11 @@ const CURVE: Array[String] = ["早慧", "晚成", "稳健", "起伏"]
 const SEASON: Array[String] = ["春", "夏", "秋", "冬"]
 
 
+## 数值（1~100）在界面上显示为 1~20 的分数：x/5 向上取整，最低 1
+static func score(value: float) -> int:
+	return clampi(ceili(value / 5.0), 1, 20)
+
+
 static func date_text(sect: Sect) -> String:
 	return "第%d年 %s · 第%d旬" % [
 		sect.current_year() + 1,

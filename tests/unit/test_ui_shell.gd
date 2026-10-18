@@ -68,6 +68,15 @@ func test_locked_nav_entries_are_disabled_and_not_pages() -> void:
 	assert_eq(main.page_count(), 5, "江湖/事件只是锁定的导航项，不算页面")
 
 
+func test_detail_shows_six_axis_radar_for_selected_disciple() -> void:
+	main.show_page(1)
+	var radar: RadarChart = (main.get_page(1) as RosterPage).radar()
+	assert_not_null(radar)
+	assert_eq(radar.axis_count(), 6)
+	for v in radar.values():
+		assert_between(v, 0.0, 1.0)
+
+
 func test_game_over_overlay_shows_and_restart_hides() -> void:
 	assert_false(main.overlay_visible())
 	Game.debug_disband_all()
