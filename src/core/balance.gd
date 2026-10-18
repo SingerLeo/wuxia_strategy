@@ -55,9 +55,12 @@ const RECRUIT_AGE_MIN := 12
 const RECRUIT_AGE_MAX := 18
 
 # --- 修炼 ---
-const BASE_XP := 10.0
-const XP_THRESHOLD_BASE := 20.0
-const XP_THRESHOLD_PER_STAT := 1.0   ## 升级所需经验 = BASE + PER_STAT × 当前技能等级
+# 数值锚点：潜力/悟性/对应属性全 100 的早慧型天才（12 岁起练），在体力循环
+# （约 64% 出勤）下 10 年（120 旬）把一项技能从 1 练到 100，见
+# tests/unit/test_growth.gd 的天才基准测试。调 BASE_XP / 门槛时请重跑该测试。
+const BASE_XP := 20.0
+const XP_THRESHOLD_BASE := 10.0
+const XP_THRESHOLD_PER_STAT := 0.55   ## 升级所需经验 = BASE + PER_STAT × 当前技能等级（1→100 共需 3712.5）
 const CAP_ATTRIBUTE_FLOOR := 0.7     ## 技能上限 = 潜力 × (FLOOR + (1-FLOOR) × 对应属性/100)
 const RELATED_COEF_BASE := 0.7       ## 对应属性对成长速度的系数 = BASE + SPAN × 属性/100
 const RELATED_COEF_SPAN := 0.6       ## （属性 50 时为 1.0）
