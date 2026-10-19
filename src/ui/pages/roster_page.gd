@@ -114,10 +114,15 @@ func refresh() -> void:
 			item.set_custom_color(3, ThemeBuilder.WARN)
 		if d.id == _selected_id or (to_select == null and _selected_id < 0):
 			to_select = item
+	if to_select == null:
+		# 原选中的弟子已不在名册（叛门等），改选第一行
+		var rows := root.get_children()
+		if not rows.is_empty():
+			to_select = rows[0]
 	if to_select:
 		to_select.select(0)
 		_show_detail(to_select.get_metadata(0))
-	elif Game.sect.disciples.is_empty():
+	else:
 		_selected_id = -1
 		_clear_detail()
 
