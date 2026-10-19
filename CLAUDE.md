@@ -28,3 +28,4 @@ godot_console --headless -s tools/sim_report.gd -- --n=500 --years=20 --seed=1
 ## 约定
 - 游戏逻辑必须能在 `--headless` 下测试；随机数通过可注入的 RandomNumberGenerator，便于固定种子复现
 - 含中文的 `.ps1` 文件必须保存为带 BOM 的 UTF-8
+- `git push` 只在用户明确说「push」时执行；平时的改动只做到本地 commit
