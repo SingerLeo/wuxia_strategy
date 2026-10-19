@@ -14,6 +14,9 @@ var sect: Sect
 var over: bool = false
 ## 弟子 id -> 本旬修炼的技能；不在表内或为 &"" 表示休息
 var plans: Dictionary = {}
+## 本季山门候选人（未招收）；每季刷新
+var candidates: Array[Disciple] = []
+var _next_id: int = 0
 
 
 func _ready() -> void:
@@ -33,6 +36,8 @@ func new_game(seed_value: int = -1) -> void:
 	over = false
 	for i in INITIAL_DISCIPLES:
 		sect.add_disciple(DiscipleFactory.create(rng, i, NameGen.person(rng)))
+	_next_id = INITIAL_DISCIPLES
+	_refresh_candidates()
 	state_changed.emit()
 
 
@@ -99,8 +104,49 @@ func end_xun() -> void:
 			var stat: StringName = plans[d.id]
 			log_added.emit("%s 的%s提升了 %d 级，现为 %d。" % [d.display_name, UiText.SKILL[stat], levels, d.skills[stat]])
 	log_added.emit("—— %s ——" % UiText.date_text(sect))
+	if sect.xun % Balance.XUN_PER_SEASON == 0:
+		_refresh_candidates()
+		log_added.emit("新的一季，山门外来了 %d 名求师者。" % candidates.size())
 	_check_destroyed()
 	state_changed.emit()
+
+
+## 招收候选人：扣银两、入门册。银两不足返回 false。
+func recruit(id: int) -> bool:
+	var c := _find_candidate(id)
+	if c == null:
+		return false
+	var price := Recruitment.asking_price(c)
+	if sect.silver < price:
+		return false
+	sect.silver -= price
+	candidates.erase(c)
+	sect.add_disciple(c)
+	log_added.emit("花费 %d 两收 %s 入门。" % [price, c.display_name])
+	state_changed.emit()
+	return true
+
+
+## 婉拒候选人：从本季候选中移除
+func decline(id: int) -> void:
+	var c := _find_candidate(id)
+	if c == null:
+		return
+	candidates.erase(c)
+	log_added.emit("婉拒了 %s。" % c.display_name)
+	state_changed.emit()
+
+
+func _find_candidate(id: int) -> Disciple:
+	for c in candidates:
+		if c.id == id:
+			return c
+	return null
+
+
+func _refresh_candidates() -> void:
+	candidates = Recruitment.generate(sect.rng, sect.prestige, _next_id)
+	_next_id += candidates.size()
 
 
 ## 调试用：遣散全部弟子，用来查看灭亡界面（界面里按 F9）

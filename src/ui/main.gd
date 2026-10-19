@@ -97,7 +97,7 @@ func show_page(index: int) -> void:
 func _register_pages() -> void:
 	_add_page("门派", SectPage.new())
 	_add_page("弟子", RosterPage.new())
-	_add_page("招收", PlaceholderPage.new("招收", "山门招生与候选人 —— 即将加入"))
+	_add_page("招收", RecruitPage.new())
 	_add_page("设施", PlaceholderPage.new("设施", "练武场、藏经阁等建设 —— 即将加入"))
 	_add_page("武学", PlaceholderPage.new("武学", "武学研修与路线选择 —— 即将加入"))
 	# P1 的"反馈"类内容：先占位并锁定，见 docs/scope.md

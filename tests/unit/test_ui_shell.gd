@@ -92,3 +92,21 @@ func test_end_xun_updates_pages_without_error() -> void:
 	Game.end_xun()
 	assert_eq(Game.sect.xun, 1)
 	assert_eq((main.get_page(1) as RosterPage).row_count(), Game.sect.disciples.size())
+
+
+func test_recruit_page_lists_candidates() -> void:
+	main.show_page(2)
+	var page: RecruitPage = main.get_page(2)
+	assert_eq(page.candidate_count(), Game.candidates.size())
+
+
+func test_recruit_from_page_adds_to_roster() -> void:
+	main.show_page(2)
+	var page: RecruitPage = main.get_page(2)
+	var id: int = Game.candidates[0].id
+	Game.recruit(id)
+	main.show_page(1)
+	var roster := main.get_page(1) as RosterPage
+	assert_eq(roster.row_count(), Game.sect.disciples.size())
+	var ids := roster.row_ids()
+	assert_true(ids.has(id), "新弟子应出现在名册里")

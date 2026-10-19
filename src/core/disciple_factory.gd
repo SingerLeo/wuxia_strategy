@@ -1,16 +1,17 @@
 class_name DiscipleFactory
 extends RefCounted
 ## 生成新弟子。所有随机都来自传入的 rng，同一种子结果可复现。
+## boost：质量加成（加在属性与潜力的生成均值上），用于声望影响招生质量，见 Recruitment。
 
 
-static func create(rng: RandomNumberGenerator, id: int, display_name: String = "") -> Disciple:
+static func create(rng: RandomNumberGenerator, id: int, display_name: String = "", boost: float = 0.0) -> Disciple:
 	var d := Disciple.new()
 	d.id = id
 	d.display_name = display_name if display_name != "" else "弟子%d" % id
 
 	for a in Balance.ATTRIBUTES:
-		d.attributes[a] = clampi(roundi(rng.randfn(Balance.ATTRIBUTE_MEAN, Balance.ATTRIBUTE_DEV)), Balance.STAT_MIN, Balance.STAT_MAX)
-	d.potential = clampi(roundi(rng.randfn(Balance.POTENTIAL_MEAN, Balance.POTENTIAL_DEV)), Balance.POTENTIAL_MIN, Balance.STAT_MAX)
+		d.attributes[a] = clampi(roundi(rng.randfn(Balance.ATTRIBUTE_MEAN + boost, Balance.ATTRIBUTE_DEV)), Balance.STAT_MIN, Balance.STAT_MAX)
+	d.potential = clampi(roundi(rng.randfn(Balance.POTENTIAL_MEAN + boost, Balance.POTENTIAL_DEV)), Balance.POTENTIAL_MIN, Balance.STAT_MAX)
 	d.curve = rng.randi_range(0, Disciple.GrowthCurve.size() - 1) as Disciple.GrowthCurve
 
 	# 技能：随机 N 项"入门所学"较高，其余只是略知皮毛
