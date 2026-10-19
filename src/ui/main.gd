@@ -168,6 +168,11 @@ func _build_top_bar() -> Control:
 	row.add_child(_prestige_label)
 	_honor_label = Page.make_label("")
 	row.add_child(_honor_label)
+	var menu_btn := Button.new()
+	menu_btn.text = "菜单"
+	menu_btn.tooltip_text = "Esc"
+	menu_btn.pressed.connect(_toggle_menu)
+	row.add_child(menu_btn)
 	return bar
 
 
