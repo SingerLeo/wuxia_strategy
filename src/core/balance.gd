@@ -75,15 +75,3 @@ const TRAIN_STAMINA_COST := 20
 const REST_STAMINA_GAIN := 35
 const LOW_STAMINA := 30
 const LOW_STAMINA_EFFICIENCY := 0.5
-
-# --- 心情与忠诚 ---
-## 驱动闭环：过劳修炼 → 心情降 → 忠诚降 → 叛门；升级与休息回暖
-const MOOD_LEVEL_UP := 2        ## 每升一级心情 +2
-const MOOD_OVERWORK := -3       ## 体力不足仍被安排修炼
-const MOOD_REST := 1            ## 休息每旬 +1
-const LOYALTY_LEVEL_UP := 1     ## 每升一级忠诚 +1（成长感）
-const LOYALTY_OVERWORK := -2
-const LOW_MOOD := 30            ## 心情低于此值，忠诚每旬流失
-const LOYALTY_LOW_MOOD := -1
-const DEFECT_LOYALTY := 0       ## 忠诚归零即叛门
-const LOYALTY_WARN := 15        ## 低于此值在门派页提醒

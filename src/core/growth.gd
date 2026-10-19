@@ -80,14 +80,13 @@ static func gain_xp(d: Disciple, skill: StringName, amount: float) -> int:
 	return _apply_levels(d, skill, cap)
 
 
-## 结算一旬：修炼或休息、体力变化、心情与忠诚、年龄 +1。返回本旬报告。
+## 结算一旬：修炼或休息、体力变化、年龄 +1。返回本旬报告。
 static func settle_xun(d: Disciple, plan: TrainingPlan, rng: RandomNumberGenerator) -> Dictionary:
 	var report := {"trained": false, "xp": 0.0, "levels": 0}
 	var training := plan != null and not plan.rest and Balance.SKILLS.has(plan.focus)
 	if training:
 		report["trained"] = true
-		var overworked := d.stamina < Balance.LOW_STAMINA
-		var eff := 1.0 if not overworked else Balance.LOW_STAMINA_EFFICIENCY
+		var eff := 1.0 if d.stamina >= Balance.LOW_STAMINA else Balance.LOW_STAMINA_EFFICIENCY
 		if d.skills[plan.focus] < skill_cap(d, plan.focus):
 			var gained: float = Balance.BASE_XP * plan.method_mult * wuxing_coef(d) \
 				* related_coef(d, plan.focus) * plan.master_mult * plan.facility_mult \
@@ -95,20 +94,9 @@ static func settle_xun(d: Disciple, plan: TrainingPlan, rng: RandomNumberGenerat
 			report["xp"] = gained
 			report["levels"] = gain_xp(d, plan.focus, gained)
 		d.stamina = maxi(0, d.stamina - Balance.TRAIN_STAMINA_COST)
-		if overworked:
-			d.mood = maxi(0, d.mood + Balance.MOOD_OVERWORK)
-			d.loyalty = clampi(d.loyalty + Balance.LOYALTY_OVERWORK, 0, Balance.STAT_MAX)
-		if report["levels"] > 0:
-			d.mood = mini(Balance.STAT_MAX, d.mood + Balance.MOOD_LEVEL_UP * report["levels"])
-			d.loyalty = clampi(d.loyalty + Balance.LOYALTY_LEVEL_UP * report["levels"], 0, Balance.STAT_MAX)
 	else:
 		d.stamina = mini(Balance.STAMINA_MAX, d.stamina + Balance.REST_STAMINA_GAIN)
-		d.mood = mini(Balance.STAT_MAX, d.mood + Balance.MOOD_REST)
-	if d.mood < Balance.LOW_MOOD:
-		d.loyalty = clampi(d.loyalty + Balance.LOYALTY_LOW_MOOD, 0, Balance.STAT_MAX)
 	d.age_xun += 1
-	report["mood"] = d.mood
-	report["loyalty"] = d.loyalty
 	return report
 
 

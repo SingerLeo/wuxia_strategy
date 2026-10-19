@@ -78,20 +78,15 @@ func reminders() -> Array[String]:
 	var out: Array[String] = []
 	var idle := 0
 	var tired := 0
-	var disloyal := 0
 	for d in sect.disciples:
 		if d.stamina < Balance.LOW_STAMINA:
 			tired += 1
 		if plan_of(d.id) == &"" and d.stamina >= IDLE_HEALTHY_STAMINA:
 			idle += 1
-		if d.loyalty <= Balance.LOYALTY_WARN:
-			disloyal += 1
 	if idle > 0:
 		out.append("%d 名体力充沛的弟子本旬尚未安排修炼。" % idle)
 	if tired > 0:
 		out.append("%d 名弟子体力不足，修炼效率减半，建议休息。" % tired)
-	if disloyal > 0:
-		out.append("%d 名弟子忠诚过低，随时可能离开门派。" % disloyal)
 	return out
 
 
@@ -113,7 +108,6 @@ func end_xun() -> void:
 	if sect.xun % Balance.XUN_PER_SEASON == 0:
 		_refresh_candidates()
 		log_added.emit("新的一季，山门外来了 %d 名求师者。" % candidates.size())
-	_settle_defections()
 	_check_destroyed()
 	saver.save(_build_state())  # 每旬自动存档
 	state_changed.emit()
@@ -201,18 +195,6 @@ func _find_candidate(id: int) -> Disciple:
 func _refresh_candidates() -> void:
 	candidates = Recruitment.generate(sect.rng, sect.prestige, _next_id)
 	_next_id += candidates.size()
-
-
-## 忠诚归零的弟子离开门派（携艺出走；后续版本会让他流向其他势力）
-func _settle_defections() -> void:
-	var defectors: Array[Disciple] = []
-	for d in sect.disciples:
-		if d.loyalty <= Balance.DEFECT_LOYALTY:
-			defectors.append(d)
-	for d in defectors:
-		sect.disciples.erase(d)
-		plans.erase(d.id)
-		log_added.emit("%s 对门派心灰意冷，携艺出走。" % d.display_name)
 
 
 ## 调试用：遣散全部弟子，用来查看灭亡界面（界面里按 F9）

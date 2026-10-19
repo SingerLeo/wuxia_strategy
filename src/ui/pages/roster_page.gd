@@ -115,7 +115,7 @@ func refresh() -> void:
 		if d.id == _selected_id or (to_select == null and _selected_id < 0):
 			to_select = item
 	if to_select == null:
-		# 原选中的弟子已不在名册（叛门等），改选第一行
+		# 原选中的弟子已不在名册（离开门派等），改选第一行
 		var rows := root.get_children()
 		if not rows.is_empty():
 			to_select = rows[0]

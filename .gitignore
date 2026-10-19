@@ -21,3 +21,7 @@ Thumbs.db
 # 本地覆盖配置
 *.local
 .env
+
+# 开发用界面截图（tools/shot.gd 的产物）
+shot_*.png
+shot_*.png.import
