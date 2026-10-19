@@ -10,6 +10,7 @@ func _initialize() -> void:
 	var steps := 0
 	var out := "shot.png"
 	var destroy := false
+	var menu := false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--page="):
 			page = int(a.get_slice("=", 1))
@@ -19,6 +20,8 @@ func _initialize() -> void:
 			out = a.get_slice("=", 1)
 		elif a == "--destroy":
 			destroy = true
+		elif a == "--menu":
+			menu = true
 
 	var game = root.get_node("Game")
 	game.new_game(7)
@@ -36,8 +39,17 @@ func _initialize() -> void:
 	main.show_page(page)
 	if destroy:
 		game.debug_disband_all()
+	if menu:
+		main._unhandled_key_input(_esc())
 	for i in 4:
 		await process_frame
 	var err := root.get_texture().get_image().save_png(out)
 	print("saved %s (err=%d)" % [out, err])
 	quit()
+
+
+func _esc() -> InputEventKey:
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_ESCAPE
+	ev.pressed = true
+	return ev

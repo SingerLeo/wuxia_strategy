@@ -44,3 +44,31 @@ func advance_xun(plans: Dictionary = {}) -> Array[Dictionary]:
 		reports.append({"id": d.id, "report": Growth.settle_xun(d, plan, rng)})
 	xun += 1
 	return reports
+
+
+## 序列化。rng 的 seed/state 是 64 位整数，超出 JSON 双精度范围，按字符串存。
+func to_dict() -> Dictionary:
+	return {
+		"name": sect_name,
+		"xun": xun,
+		"silver": silver,
+		"prestige": prestige,
+		"honor": honor,
+		"rng_seed": str(rng.seed),
+		"rng_state": str(rng.state),
+		"disciples": disciples.map(func(d: Disciple) -> Dictionary: return d.to_dict()),
+	}
+
+
+static func from_dict(data: Dictionary) -> Sect:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = String(data["rng_seed"]).to_int()
+	rng.state = String(data["rng_state"]).to_int()
+	var s := Sect.new(data["name"], rng)
+	s.xun = int(data["xun"])
+	s.silver = int(data["silver"])
+	s.prestige = int(data["prestige"])
+	s.honor = int(data["honor"])
+	for dd in data["disciples"]:
+		s.disciples.append(Disciple.from_dict(dd))
+	return s

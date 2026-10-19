@@ -14,6 +14,8 @@ var _date_label: Label
 var _silver_label: Label
 var _end_button: Button
 var _overlay: Control
+var _menu: Control
+var _menu_load_btn: Button
 var _prestige_label: Label
 var _honor_label: Label
 var _locked_header_added := false
@@ -47,6 +49,7 @@ func _ready() -> void:
 
 	_register_pages()
 	_build_game_over_overlay()
+	_build_menu_overlay()
 
 	Game.state_changed.connect(_on_state_changed)
 	Game.log_added.connect(_on_log_added)
@@ -59,10 +62,17 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	match event.keycode:
+		KEY_ESCAPE:
+			_toggle_menu()
 		KEY_SPACE:
-			Game.end_xun()
+			if not _menu.visible:
+				Game.end_xun()
 		KEY_F9:  # 开发用：遣散全部弟子，查看灭亡界面
 			Game.debug_disband_all()
+
+
+func menu_visible() -> bool:
+	return _menu.visible
 
 
 func overlay_visible() -> bool:
@@ -224,6 +234,64 @@ func _build_game_over_overlay() -> void:
 	restart.theme_type_variation = &"PrimaryButton"
 	restart.pressed.connect(Game.new_game)
 	box.add_child(restart)
+
+
+## Esc 系统菜单：继续 / 存档 / 读档 / 设置（占位）/ 退出
+func _build_menu_overlay() -> void:
+	_menu = ColorRect.new()
+	_menu.color = Color(0, 0, 0, 0.6)
+	_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_menu.visible = false
+	add_child(_menu)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_menu.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(360, 0)
+	center.add_child(panel)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	panel.add_child(box)
+
+	var title := Page.make_label("菜单", &"Heading")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+
+	var resume := Button.new()
+	resume.text = "继续（Esc）"
+	resume.pressed.connect(_toggle_menu)
+	box.add_child(resume)
+
+	var save := Button.new()
+	save.text = "保存进度"
+	save.pressed.connect(Game.save_game)
+	box.add_child(save)
+
+	_menu_load_btn = Button.new()
+	_menu_load_btn.text = "读取存档"
+	_menu_load_btn.pressed.connect(func() -> void:
+		if Game.load_game():
+			_toggle_menu())
+	box.add_child(_menu_load_btn)
+
+	var settings := Button.new()
+	settings.text = "设置（未开放）"
+	settings.disabled = true
+	box.add_child(settings)
+
+	var quit := Button.new()
+	quit.text = "退出游戏"
+	quit.pressed.connect(func() -> void: get_tree().quit())
+	box.add_child(quit)
+
+
+func _toggle_menu() -> void:
+	_menu.visible = not _menu.visible
+	if _menu.visible:
+		_menu_load_btn.disabled = not Game.has_save()
 
 
 func _on_nav_toggled(on: bool, index: int) -> void:

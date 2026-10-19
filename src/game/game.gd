@@ -16,6 +16,7 @@ var over: bool = false
 var plans: Dictionary = {}
 ## 本季山门候选人（未招收）；每季刷新
 var candidates: Array[Disciple] = []
+var saver := SaveSystem.new()
 var _next_id: int = 0
 
 
@@ -108,7 +109,54 @@ func end_xun() -> void:
 		_refresh_candidates()
 		log_added.emit("新的一季，山门外来了 %d 名求师者。" % candidates.size())
 	_check_destroyed()
+	saver.save(_build_state())  # 每旬自动存档
 	state_changed.emit()
+
+
+# --- 存档 / 读档（H 类） ---
+
+## 手动存档（Esc 菜单），写日志；每旬的自动存档走 saver.save 不打扰日志
+func save_game() -> bool:
+	var ok := saver.save(_build_state())
+	log_added.emit("已存档。" if ok else "存档失败。")
+	state_changed.emit()
+	return ok
+
+
+## 读取存档。无档、损坏或版本不符返回 false，当前局面不受影响。
+func load_game() -> bool:
+	var state := saver.load_state()
+	if state.is_empty():
+		return false
+	sect = Sect.from_dict(state["sect"])
+	plans.clear()
+	for key in state["plans"]:
+		plans[int(key)] = StringName(state["plans"][key])
+	candidates.clear()
+	for cd in state["candidates"]:
+		candidates.append(Disciple.from_dict(cd))
+	_next_id = int(state["next_id"])
+	over = bool(state["over"])
+	log_added.emit("已读取存档。")
+	state_changed.emit()
+	return true
+
+
+func has_save() -> bool:
+	return saver.has_save()
+
+
+func _build_state() -> Dictionary:
+	var plans_str := {}
+	for id in plans:
+		plans_str[str(id)] = String(plans[id])
+	return {
+		"sect": sect.to_dict(),
+		"plans": plans_str,
+		"candidates": candidates.map(func(c: Disciple) -> Dictionary: return c.to_dict()),
+		"next_id": _next_id,
+		"over": over,
+	}
 
 
 ## 招收候选人：扣银两、入门册。银两不足返回 false。

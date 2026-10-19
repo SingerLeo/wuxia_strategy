@@ -7,7 +7,12 @@ var game: Node
 func before_each() -> void:
 	game = load("res://src/game/game.gd").new()
 	add_child_autofree(game)
+	game.saver = SaveSystem.new("user://test_game_save.json")
 	game.new_game(1)
+
+
+func after_each() -> void:
+	game.saver.clear()
 
 
 func test_new_game_creates_initial_disciples() -> void:

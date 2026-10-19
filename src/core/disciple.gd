@@ -40,3 +40,56 @@ func _init() -> void:
 
 func age_years() -> float:
 	return float(age_xun) / Balance.XUN_PER_YEAR
+
+
+## 序列化：StringName 键转成 String 以进 JSON。读取用 from_dict。
+func to_dict() -> Dictionary:
+	return {
+		"id": id,
+		"name": display_name,
+		"potential": potential,
+		"curve": int(curve),
+		"age_xun": age_xun,
+		"skills": _stringify_keys(skills),
+		"attributes": _stringify_keys(attributes),
+		"xp": _stringify_keys(xp),
+		"traits": traits.map(func(t: StringName) -> String: return String(t)),
+		"hp": hp,
+		"neili": neili,
+		"stamina": stamina,
+		"mood": mood,
+		"loyalty": loyalty,
+		"prestige": prestige,
+	}
+
+
+static func from_dict(data: Dictionary) -> Disciple:
+	var d := Disciple.new()
+	d.id = int(data["id"])
+	d.display_name = data["name"]
+	d.potential = int(data["potential"])
+	d.curve = int(data["curve"]) as GrowthCurve
+	d.age_xun = int(data["age_xun"])
+	for k in data["skills"]:
+		d.skills[StringName(k)] = int(data["skills"][k])
+	for k in data["attributes"]:
+		d.attributes[StringName(k)] = int(data["attributes"][k])
+	for k in data["xp"]:
+		d.xp[StringName(k)] = float(data["xp"][k])
+	d.traits.clear()
+	for t in data["traits"]:
+		d.traits.append(StringName(t))
+	d.hp = int(data["hp"])
+	d.neili = int(data["neili"])
+	d.stamina = int(data["stamina"])
+	d.mood = int(data["mood"])
+	d.loyalty = int(data["loyalty"])
+	d.prestige = int(data["prestige"])
+	return d
+
+
+static func _stringify_keys(dict: Dictionary) -> Dictionary:
+	var out := {}
+	for k in dict:
+		out[String(k)] = dict[k]
+	return out

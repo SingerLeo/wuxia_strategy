@@ -5,10 +5,15 @@ var main: Control
 
 
 func before_each() -> void:
+	Game.saver = SaveSystem.new("user://test_ui_save.json")
 	Game.new_game(1)
 	main = load("res://scenes/main.tscn").instantiate()
 	add_child_autofree(main)
 	await get_tree().process_frame
+
+
+func after_each() -> void:
+	Game.saver.clear()
 
 
 func test_has_all_pages() -> void:
@@ -110,3 +115,24 @@ func test_recruit_from_page_adds_to_roster() -> void:
 	assert_eq(roster.row_count(), Game.sect.disciples.size())
 	var ids := roster.row_ids()
 	assert_true(ids.has(id), "新弟子应出现在名册里")
+
+
+func _key(keycode: Key) -> InputEventKey:
+	var ev := InputEventKey.new()
+	ev.keycode = keycode
+	ev.pressed = true
+	return ev
+
+
+func test_escape_toggles_menu() -> void:
+	assert_false(main.menu_visible())
+	main._unhandled_key_input(_key(KEY_ESCAPE))
+	assert_true(main.menu_visible())
+	main._unhandled_key_input(_key(KEY_ESCAPE))
+	assert_false(main.menu_visible())
+
+
+func test_space_does_not_advance_while_menu_open() -> void:
+	main._unhandled_key_input(_key(KEY_ESCAPE))
+	main._unhandled_key_input(_key(KEY_SPACE))
+	assert_eq(Game.sect.xun, 0, "菜单打开时空格不应结束本旬")

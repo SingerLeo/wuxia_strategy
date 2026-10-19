@@ -7,7 +7,12 @@ var rng: RandomNumberGenerator
 func before_each() -> void:
 	rng = RandomNumberGenerator.new()
 	rng.seed = 1
+	Game.saver = SaveSystem.new("user://test_recruit_save.json")
 	Game.new_game(1)
+
+
+func after_each() -> void:
+	Game.saver.clear()
 
 
 func test_new_game_has_a_batch_of_candidates() -> void:
