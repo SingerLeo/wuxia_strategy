@@ -20,10 +20,14 @@ static func score(value: float) -> int:
 
 
 static func date_text(sect: Sect) -> String:
+	return date_text_of_xun(sect.xun)
+
+
+static func date_text_of_xun(xun: int) -> String:
 	return "第%d年 %s · 第%d旬" % [
-		sect.current_year() + 1,
-		SEASON[sect.current_season()],
-		sect.xun % Balance.XUN_PER_SEASON + 1,
+		xun / Balance.XUN_PER_YEAR + 1,
+		SEASON[(xun % Balance.XUN_PER_YEAR) / Balance.XUN_PER_SEASON],
+		xun % Balance.XUN_PER_SEASON + 1,
 	]
 
 

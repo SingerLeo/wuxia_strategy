@@ -5,7 +5,7 @@ var main: Control
 
 
 func before_each() -> void:
-	Game.saver = SaveSystem.new("user://test_ui_save.json")
+	Game.saver = SaveSystem.new("user://test_saves_ui")
 	Game.new_game(1)
 	main = load("res://scenes/main.tscn").instantiate()
 	add_child_autofree(main)
@@ -13,7 +13,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
-	Game.saver.clear()
+	Game.saver.clear_all()
 
 
 func test_has_all_pages() -> void:
@@ -136,3 +136,20 @@ func test_space_does_not_advance_while_menu_open() -> void:
 	main._unhandled_key_input(_key(KEY_ESCAPE))
 	main._unhandled_key_input(_key(KEY_SPACE))
 	assert_eq(Game.sect.xun, 0, "菜单打开时空格不应结束本旬")
+
+
+func test_saveload_panel_shows_all_slots() -> void:
+	main._saveload.refresh()
+	var rows: Array[Node] = main._saveload._rows.get_children()
+	assert_eq(rows.size(), SaveSystem.SLOT_COUNT + 1, "自动存档 + 全部手动槽位")
+	for row in rows:
+		var hbox: Node = row.get_child(0)
+		var load_btn := hbox.get_child(hbox.get_child_count() - 1) as Button
+		assert_true(load_btn.disabled, "空槽位的读取按钮应禁用")
+
+
+func test_escape_closes_saveload_before_menu() -> void:
+	main._saveload.visible = true
+	main._unhandled_key_input(_key(KEY_ESCAPE))
+	assert_false(main._saveload.visible)
+	assert_false(main.menu_visible(), "Esc 先关存档面板，而不是开菜单")

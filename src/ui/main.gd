@@ -15,7 +15,7 @@ var _silver_label: Label
 var _end_button: Button
 var _overlay: Control
 var _menu: Control
-var _menu_load_btn: Button
+var _saveload: SaveLoadPanel
 var _prestige_label: Label
 var _honor_label: Label
 var _locked_header_added := false
@@ -50,6 +50,8 @@ func _ready() -> void:
 	_register_pages()
 	_build_game_over_overlay()
 	_build_menu_overlay()
+	_saveload = SaveLoadPanel.new()
+	add_child(_saveload)
 
 	Game.state_changed.connect(_on_state_changed)
 	Game.log_added.connect(_on_log_added)
@@ -63,9 +65,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	match event.keycode:
 		KEY_ESCAPE:
-			_toggle_menu()
+			if _saveload.visible:
+				_saveload.visible = false
+			else:
+				_toggle_menu()
 		KEY_SPACE:
-			if not _menu.visible:
+			if not _menu.visible and not _saveload.visible:
 				Game.end_xun()
 		KEY_F9:  # 开发用：遣散全部弟子，查看灭亡界面
 			Game.debug_disband_all()
@@ -271,16 +276,11 @@ func _build_menu_overlay() -> void:
 	box.add_child(resume)
 
 	var save := Button.new()
-	save.text = "保存进度"
-	save.pressed.connect(Game.save_game)
+	save.text = "存档 / 读档"
+	save.pressed.connect(func() -> void:
+		_saveload.refresh()
+		_saveload.visible = true)
 	box.add_child(save)
-
-	_menu_load_btn = Button.new()
-	_menu_load_btn.text = "读取存档"
-	_menu_load_btn.pressed.connect(func() -> void:
-		if Game.load_game():
-			_toggle_menu())
-	box.add_child(_menu_load_btn)
 
 	var save_dir := Button.new()
 	save_dir.text = "打开存档目录"
@@ -301,8 +301,6 @@ func _build_menu_overlay() -> void:
 
 func _toggle_menu() -> void:
 	_menu.visible = not _menu.visible
-	if _menu.visible:
-		_menu_load_btn.disabled = not Game.has_save()
 
 
 func _on_nav_toggled(on: bool, index: int) -> void:

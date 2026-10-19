@@ -11,6 +11,7 @@ func _initialize() -> void:
 	var out := "shot.png"
 	var destroy := false
 	var menu := false
+	var saves := false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--page="):
 			page = int(a.get_slice("=", 1))
@@ -22,6 +23,8 @@ func _initialize() -> void:
 			destroy = true
 		elif a == "--menu":
 			menu = true
+		elif a == "--saves":
+			saves = true
 
 	var game = root.get_node("Game")
 	game.new_game(7)
@@ -41,6 +44,9 @@ func _initialize() -> void:
 		game.debug_disband_all()
 	if menu:
 		main._unhandled_key_input(_esc())
+	if saves:
+		main._saveload.refresh()
+		main._saveload.visible = true
 	for i in 4:
 		await process_frame
 	var err := root.get_texture().get_image().save_png(out)

@@ -109,23 +109,23 @@ func end_xun() -> void:
 		_refresh_candidates()
 		log_added.emit("新的一季，山门外来了 %d 名求师者。" % candidates.size())
 	_check_destroyed()
-	saver.save(_build_state())  # 每旬自动存档
+	saver.save(SaveSystem.AUTOSAVE, _build_state())  # 每旬自动存档
 	state_changed.emit()
 
 
-# --- 存档 / 读档（H 类） ---
+# --- 存档 / 读档（H 类，多槽位） ---
 
-## 手动存档（Esc 菜单），写日志；每旬的自动存档走 saver.save 不打扰日志
-func save_game() -> bool:
-	var ok := saver.save(_build_state())
-	log_added.emit("已存档。" if ok else "存档失败。")
+## 存入指定槽位（0..SLOT_COUNT-1），写日志；每旬的自动存档走 AUTOSAVE 槽不打扰日志
+func save_to_slot(index: int) -> bool:
+	var ok := saver.save(index, _build_state())
+	log_added.emit("已存入存档 %d。" % [index + 1] if ok else "存档失败。")
 	state_changed.emit()
 	return ok
 
 
-## 读取存档。无档、损坏或版本不符返回 false，当前局面不受影响。
-func load_game() -> bool:
-	var state := saver.load_state()
+## 读取槽位（手动槽或 SaveSystem.AUTOSAVE）。无档、损坏或版本不符返回 false，当前局面不受影响。
+func load_from_slot(index: int) -> bool:
+	var state := saver.load_state(index)
 	if state.is_empty():
 		return false
 	sect = Sect.from_dict(state["sect"])
@@ -142,8 +142,17 @@ func load_game() -> bool:
 	return true
 
 
-func has_save() -> bool:
-	return saver.has_save()
+func has_save(index: int = 0) -> bool:
+	return saver.has_save(index)
+
+
+## 所有槽位的摘要（自动存档在第一位），供存档界面展示
+func slot_infos() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	out.append(saver.info(SaveSystem.AUTOSAVE))
+	for i in SaveSystem.SLOT_COUNT:
+		out.append(saver.info(i))
+	return out
 
 
 func _build_state() -> Dictionary:
