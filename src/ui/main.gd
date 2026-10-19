@@ -277,6 +277,12 @@ func _build_menu_overlay() -> void:
 			_toggle_menu())
 	box.add_child(_menu_load_btn)
 
+	var save_dir := Button.new()
+	save_dir.text = "打开存档目录"
+	save_dir.tooltip_text = ProjectSettings.globalize_path("user://")
+	save_dir.pressed.connect(func() -> void: OS.shell_open(ProjectSettings.globalize_path("user://")))
+	box.add_child(save_dir)
+
 	var settings := Button.new()
 	settings.text = "设置（未开放）"
 	settings.disabled = true
