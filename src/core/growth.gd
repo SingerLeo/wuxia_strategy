@@ -81,7 +81,9 @@ static func gain_xp(d: Disciple, skill: StringName, amount: float) -> int:
 
 
 ## 结算一旬：修炼或休息、体力变化、年龄 +1。返回本旬报告。
-static func settle_xun(d: Disciple, plan: TrainingPlan, rng: RandomNumberGenerator) -> Dictionary:
+## training_mult：建筑（练武场）带来的修炼经验倍率；rest_bonus：药庐带来的额外体力恢复。
+static func settle_xun(d: Disciple, plan: TrainingPlan, rng: RandomNumberGenerator,
+		training_mult: float = 1.0, rest_bonus: int = 0) -> Dictionary:
 	var report := {"trained": false, "xp": 0.0, "levels": 0}
 	var training := plan != null and not plan.rest and Balance.SKILLS.has(plan.focus)
 	if training:
@@ -89,13 +91,13 @@ static func settle_xun(d: Disciple, plan: TrainingPlan, rng: RandomNumberGenerat
 		var eff := 1.0 if d.stamina >= Balance.LOW_STAMINA else Balance.LOW_STAMINA_EFFICIENCY
 		if d.skills[plan.focus] < skill_cap(d, plan.focus):
 			var gained: float = Balance.BASE_XP * plan.method_mult * wuxing_coef(d) \
-				* related_coef(d, plan.focus) * plan.master_mult * plan.facility_mult \
+				* related_coef(d, plan.focus) * plan.master_mult * plan.facility_mult * training_mult \
 				* age_multiplier(d.curve, d.age_years(), plan.focus, rng) * eff
 			report["xp"] = gained
 			report["levels"] = gain_xp(d, plan.focus, gained)
 		d.stamina = maxi(0, d.stamina - Balance.TRAIN_STAMINA_COST)
 	else:
-		d.stamina = mini(Balance.STAMINA_MAX, d.stamina + Balance.REST_STAMINA_GAIN)
+		d.stamina = mini(Balance.STAMINA_MAX, d.stamina + Balance.REST_STAMINA_GAIN + rest_bonus)
 	d.age_xun += 1
 	return report
 

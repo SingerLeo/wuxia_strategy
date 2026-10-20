@@ -17,7 +17,7 @@ func after_each() -> void:
 
 
 func test_has_all_pages() -> void:
-	assert_eq(main.page_count(), 5)
+	assert_eq(main.page_count(), 6)
 
 
 func test_first_page_is_visible_and_only_one_nav_pressed() -> void:
@@ -70,7 +70,7 @@ func test_space_ends_the_xun() -> void:
 
 
 func test_locked_nav_entries_are_disabled_and_not_pages() -> void:
-	assert_eq(main.page_count(), 5, "江湖/事件只是锁定的导航项，不算页面")
+	assert_eq(main.page_count(), 6, "江湖/事件只是锁定的导航项，不算页面")
 
 
 func test_detail_shows_six_axis_radar_for_selected_disciple() -> void:

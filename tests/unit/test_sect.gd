@@ -66,7 +66,7 @@ func test_resources_round_trip_through_dict() -> void:
 	sect.change_prestige(-100)
 	var back := Sect.from_dict(sect.to_dict())
 	assert_eq(back.silver, 777)
-	assert_eq(back.legacy, 42)
+	assert_eq(back.legacy, sect.legacy, "获得威望会带来底蕴，读档后应一致")
 	assert_eq(back.honor, 5)
 	assert_eq(back.prestige, 200)
 	assert_eq(back.prestige_peak, 300)

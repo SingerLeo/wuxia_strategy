@@ -21,7 +21,8 @@ func _init() -> void:
 	_grid.add_theme_constant_override("v_separation", 10)
 	box.add_child(_grid)
 	for key in ["门派", "日期", UiText.RES_SILVER, UiText.RES_PRESTIGE, "历史最高威望", "任务等级",
-			UiText.RES_LEGACY, "荣耀", "弟子人数", "平均体力", "平均忠诚"]:
+			UiText.RES_LEGACY, "弟子人数", "平均体力", "平均忠诚",
+			"每旬收入", "养育弟子", "建筑维护", "每旬结余"]:
 		_grid.add_child(Page.make_label(key, &"Muted"))
 		var v := Page.make_label("")
 		_grid.add_child(v)
@@ -32,8 +33,6 @@ func _init() -> void:
 	_reminders.add_theme_constant_override("separation", 6)
 	box.add_child(_reminders)
 
-	box.add_child(Page.make_label("设施", &"Subheading"))
-	box.add_child(Page.make_label("练武场、藏经阁、药庐等设施将在后续版本加入。", &"Muted"))
 
 
 func refresh() -> void:
@@ -51,7 +50,15 @@ func refresh() -> void:
 	_values["历史最高威望"].text = str(s.prestige_peak)
 	_values["任务等级"].text = "%d 级" % s.task_tier()
 	_values[UiText.RES_LEGACY].text = str(s.legacy)
-	_values["荣耀"].text = str(s.honor)
+	var income := Economy.estate_income(s)
+	var upkeep_d := Economy.disciple_upkeep(s)
+	var upkeep_b := Economy.building_upkeep(s)
+	_values["每旬收入"].text = "+%d" % income
+	_values["养育弟子"].text = "-%d" % upkeep_d if upkeep_d > 0 else "0"
+	_values["建筑维护"].text = "-%d" % upkeep_b if upkeep_b > 0 else "0"
+	var net := income - upkeep_d - upkeep_b
+	_values["每旬结余"].text = "%+d" % net
+	_values["每旬结余"].add_theme_color_override("font_color", ThemeBuilder.WARN if net < 0 else ThemeBuilder.GOLD)
 	_values["弟子人数"].text = str(n)
 	_values["平均体力"].text = "%.0f" % (float(stamina) / maxi(n, 1))
 	_values["平均忠诚"].text = "%.0f" % (float(loyalty) / maxi(n, 1))

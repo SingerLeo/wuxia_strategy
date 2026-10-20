@@ -8,6 +8,7 @@ signal game_over
 const INITIAL_DISCIPLES := 12
 const AUTO_TRAIN_MIN_STAMINA := 40   ## 批量修炼时，体力低于此值的弟子改为休息
 const IDLE_HEALTHY_STAMINA := 70     ## 休息中且体力不低于此值，视为"闲着"
+const LOW_RUNWAY_XUN := 12           ## 银两只够撑这么多旬以内时提醒
 
 var sect: Sect
 ## 门派已灭亡，本局结束；结束后不再推进回合，直到 new_game
@@ -32,7 +33,9 @@ func new_game(seed_value: int = -1) -> void:
 	else:
 		rng.randomize()
 	sect = Sect.new("青云门", rng)
-	sect.silver = 1000
+	sect.silver = Catalog.START_SILVER
+	for id in Catalog.START_ESTATES:
+		sect.estates[id] = Catalog.START_ESTATES[id]
 	plans.clear()
 	over = false
 	for i in INITIAL_DISCIPLES:
@@ -87,6 +90,9 @@ func reminders() -> Array[String]:
 		out.append("%d 名体力充沛的弟子本旬尚未安排修炼。" % idle)
 	if tired > 0:
 		out.append("%d 名弟子体力不足，修炼效率减半，建议休息。" % tired)
+	var runway := Economy.runway(sect)
+	if runway >= 0 and runway <= LOW_RUNWAY_XUN:
+		out.append("每旬入不敷出（%+d），银两只够撑 %d 旬。" % [Economy.net_per_xun(sect), runway])
 	return out
 
 
@@ -105,12 +111,55 @@ func end_xun() -> void:
 			var stat: StringName = plans[d.id]
 			log_added.emit("%s 的%s提升了 %d 级，现为 %d。" % [d.display_name, UiText.SKILL[stat], levels, d.skills[stat]])
 	log_added.emit("—— %s ——" % UiText.date_text(sect))
+	_log_settlement()
 	if sect.xun % Balance.XUN_PER_SEASON == 0:
 		_refresh_candidates()
 		log_added.emit("新的一季，山门外来了 %d 名求师者。" % candidates.size())
 	_check_destroyed()
 	saver.save(SaveSystem.AUTOSAVE, _build_state())  # 每旬自动存档
 	state_changed.emit()
+
+
+func _log_settlement() -> void:
+	var st := sect.last_settlement
+	var upkeep: int = st["upkeep_disciples"] + st["upkeep_buildings"]
+	var line := "本旬收入 %d，支出 %d（养育 %d、维护 %d）" % [st["income"], upkeep, st["upkeep_disciples"], st["upkeep_buildings"]]
+	if st["legacy_gain"] > 0:
+		line += "，底蕴 +%d" % st["legacy_gain"]
+	log_added.emit(line + "。")
+	if st["shortfall"] > 0:
+		log_added.emit("银两不足，缺口 %d 两未能付清！" % st["shortfall"])
+
+
+# --- 产业与建筑 ---
+
+## 购置产业：扣银两，增加一处。已达上限或银两不足返回 false。
+func buy_estate(id: StringName) -> bool:
+	if not Catalog.ESTATES.has(id):
+		return false
+	var info: Dictionary = Catalog.ESTATES[id]
+	if sect.estate_count(id) >= int(info["max"]) or sect.silver < int(info["price"]):
+		return false
+	sect.silver -= int(info["price"])
+	sect.estates[id] = sect.estate_count(id) + 1
+	log_added.emit("花费 %d 两购置%s，每旬 +%d 两。" % [info["price"], info["name"], info["income"]])
+	state_changed.emit()
+	return true
+
+
+## 升级建筑一级（未建则建到 1 级）。已满级或银两不足返回 false。
+func upgrade_building(id: StringName) -> bool:
+	if not Catalog.BUILDINGS.has(id):
+		return false
+	var level := sect.building_level(id)
+	var cost := Economy.next_building_cost(id, level)
+	if cost < 0 or sect.silver < cost:
+		return false
+	sect.silver -= cost
+	sect.buildings[id] = level + 1
+	log_added.emit("花费 %d 两，%s升到 %d 级。" % [cost, Catalog.BUILDINGS[id]["name"], level + 1])
+	state_changed.emit()
+	return true
 
 
 # --- 存档 / 读档（H 类，多槽位） ---

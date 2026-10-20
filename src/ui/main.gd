@@ -18,7 +18,6 @@ var _menu: Control
 var _saveload: SaveLoadPanel
 var _prestige_label: Label
 var _legacy_label: Label
-var _honor_label: Label
 var _locked_header_added := false
 
 
@@ -114,7 +113,8 @@ func _register_pages() -> void:
 	_add_page("门派", SectPage.new())
 	_add_page("弟子", RosterPage.new())
 	_add_page("招收", RecruitPage.new())
-	_add_page("设施", PlaceholderPage.new("设施", "练武场、藏经阁等建设 —— 即将加入"))
+	_add_page("建筑", BuildingPage.new())
+	_add_page("产业", EstatePage.new())
 	_add_page("武学", PlaceholderPage.new("武学", "武学研修与路线选择 —— 即将加入"))
 	# P1 的"反馈"类内容：先占位并锁定，见 docs/scope.md
 	_add_locked_nav("江湖")
@@ -174,8 +174,6 @@ func _build_top_bar() -> Control:
 	row.add_child(_prestige_label)
 	_legacy_label = Page.make_label("")
 	row.add_child(_legacy_label)
-	_honor_label = Page.make_label("")
-	row.add_child(_honor_label)
 	var menu_btn := Button.new()
 	menu_btn.text = "菜单"
 	menu_btn.tooltip_text = "Esc"
@@ -329,4 +327,3 @@ func _update_header() -> void:
 	_silver_label.text = "%s %d" % [UiText.RES_SILVER, Game.sect.silver]
 	_prestige_label.text = "%s %d" % [UiText.RES_PRESTIGE, Game.sect.prestige]
 	_legacy_label.text = "%s %d" % [UiText.RES_LEGACY, Game.sect.legacy]
-	_honor_label.text = "荣耀 %d" % Game.sect.honor
