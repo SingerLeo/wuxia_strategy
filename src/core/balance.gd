@@ -41,6 +41,10 @@ const HP_PER_GENGU := 0.8
 const NEILI_BASE := 20
 const NEILI_PER_SKILL := 2.0   ## 内力上限 = BASE + PER_SKILL × 内功等级
 
+# --- 门派资源（银两 / 威望 / 底蕴，见 docs/resources.md） ---
+## 可接任务等级所需的"历史最高威望"，下标 0 对应 1 级。占位数值，待任务系统做出来后再调。
+const TASK_TIER_PRESTIGE: Array[int] = [0, 50, 150, 400, 1000]
+
 # --- 新弟子生成 ---
 const ATTRIBUTE_MEAN := 35.0
 const ATTRIBUTE_DEV := 12.0

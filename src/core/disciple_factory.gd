@@ -1,7 +1,7 @@
 class_name DiscipleFactory
 extends RefCounted
 ## 生成新弟子。所有随机都来自传入的 rng，同一种子结果可复现。
-## boost：质量加成（加在属性与潜力的生成均值上），用于声望影响招生质量，见 Recruitment。
+## boost：质量加成（加在属性与潜力的生成均值上），用于威望影响招生质量，见 Recruitment。
 
 
 static func create(rng: RandomNumberGenerator, id: int, display_name: String = "", boost: float = 0.0) -> Disciple:

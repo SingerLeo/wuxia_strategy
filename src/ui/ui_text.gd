@@ -10,6 +10,10 @@ const ATTR := {
 	&"wuxing": "悟性", &"gengu": "根骨", &"shenfa": "身法", &"zhimou": "智谋",
 	&"meili": "魅力", &"lingdao": "领导力", &"dingli": "定力", &"qinhe": "亲和",
 }
+## 三大资源的显示名。第三种（解锁技能树的点数）暂名"底蕴"，想改只改这里。
+const RES_SILVER := "银两"
+const RES_PRESTIGE := "威望"
+const RES_LEGACY := "底蕴"
 const CURVE: Array[String] = ["早慧", "晚成", "稳健", "起伏"]
 const SEASON: Array[String] = ["春", "夏", "秋", "冬"]
 

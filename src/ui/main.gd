@@ -17,6 +17,7 @@ var _overlay: Control
 var _menu: Control
 var _saveload: SaveLoadPanel
 var _prestige_label: Label
+var _legacy_label: Label
 var _honor_label: Label
 var _locked_header_added := false
 
@@ -171,6 +172,8 @@ func _build_top_bar() -> Control:
 	row.add_child(_silver_label)
 	_prestige_label = Page.make_label("")
 	row.add_child(_prestige_label)
+	_legacy_label = Page.make_label("")
+	row.add_child(_legacy_label)
 	_honor_label = Page.make_label("")
 	row.add_child(_honor_label)
 	var menu_btn := Button.new()
@@ -323,6 +326,7 @@ func _on_log_added(text: String) -> void:
 func _update_header() -> void:
 	_sect_label.text = Game.sect.sect_name
 	_date_label.text = UiText.date_text(Game.sect)
-	_silver_label.text = "银两 %d" % Game.sect.silver
-	_prestige_label.text = "声望 %d" % Game.sect.prestige
+	_silver_label.text = "%s %d" % [UiText.RES_SILVER, Game.sect.silver]
+	_prestige_label.text = "%s %d" % [UiText.RES_PRESTIGE, Game.sect.prestige]
+	_legacy_label.text = "%s %d" % [UiText.RES_LEGACY, Game.sect.legacy]
 	_honor_label.text = "荣耀 %d" % Game.sect.honor

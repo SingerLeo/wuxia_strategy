@@ -1,7 +1,7 @@
 class_name RecruitPage
 extends Page
 ## 招收（B 类，P0）：本季候选人列表 + 详情 + 招收/婉拒。
-## 候选人每季刷新，质量随门派声望提升；要价 = 40 + 潜力。
+## 候选人每季刷新，质量随门派威望提升；要价 = 40 + 潜力。
 
 const COLUMNS: Array[String] = ["姓名", "年龄", "专长", "性格", "要价"]
 
@@ -34,7 +34,7 @@ func _init() -> void:
 	_silver_label = Page.make_label("", &"Muted")
 	head.add_child(_silver_label)
 	left.add_child(head)
-	left.add_child(Page.make_label("每季第一天刷新一批，声望越高，来投的资质越好。", &"Muted"))
+	left.add_child(Page.make_label("每季第一天刷新一批，威望越高，来投的资质越好。", &"Muted"))
 
 	_tree = Tree.new()
 	_tree.columns = COLUMNS.size()

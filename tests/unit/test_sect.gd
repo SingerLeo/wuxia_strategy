@@ -17,6 +17,73 @@ func _plans_for(sect: Sect) -> Dictionary:
 	return plans
 
 
+func test_prestige_cannot_go_below_zero() -> void:
+	var sect := _make_sect(1, 0)
+	sect.change_prestige(-30)
+	assert_eq(sect.prestige, 0)
+	assert_eq(sect.prestige_peak, 0)
+
+
+func test_prestige_peak_never_decreases() -> void:
+	var sect := _make_sect(1, 0)
+	sect.change_prestige(120)
+	sect.change_prestige(-80)
+	assert_eq(sect.prestige, 40)
+	assert_eq(sect.prestige_peak, 120, "历史最高威望只增不减")
+	sect.change_prestige(50)
+	assert_eq(sect.prestige_peak, 120, "未超过旧纪录时不变")
+	sect.change_prestige(100)  # 当前 40+50+100 = 190，超过旧纪录 120
+	assert_eq(sect.prestige, 190)
+	assert_eq(sect.prestige_peak, 190)
+
+
+func test_task_tier_follows_peak_prestige_thresholds() -> void:
+	var sect := _make_sect(1, 0)
+	assert_eq(sect.task_tier(), 1)
+	sect.change_prestige(49)
+	assert_eq(sect.task_tier(), 1)
+	sect.change_prestige(1)
+	assert_eq(sect.task_tier(), 2, "达到 50 升到 2 级")
+	sect.change_prestige(1000)
+	assert_eq(sect.task_tier(), Balance.TASK_TIER_PRESTIGE.size(), "封顶在最高等级")
+
+
+func test_task_tier_survives_prestige_loss() -> void:
+	var sect := _make_sect(1, 0)
+	sect.change_prestige(200)
+	assert_eq(sect.task_tier(), 3)
+	sect.change_prestige(-190)
+	assert_eq(sect.prestige, 10)
+	assert_eq(sect.task_tier(), 3, "任务等级由历史最高威望决定，威望下跌不影响")
+
+
+func test_resources_round_trip_through_dict() -> void:
+	var sect := _make_sect(1, 2)
+	sect.silver = 777
+	sect.legacy = 42
+	sect.honor = 5
+	sect.change_prestige(300)
+	sect.change_prestige(-100)
+	var back := Sect.from_dict(sect.to_dict())
+	assert_eq(back.silver, 777)
+	assert_eq(back.legacy, 42)
+	assert_eq(back.honor, 5)
+	assert_eq(back.prestige, 200)
+	assert_eq(back.prestige_peak, 300)
+	assert_eq(back.task_tier(), sect.task_tier())
+
+
+func test_old_save_without_new_fields_still_loads() -> void:
+	var sect := _make_sect(1, 1)
+	sect.change_prestige(80)
+	var data := sect.to_dict()
+	data.erase("prestige_peak")
+	data.erase("legacy")
+	var back := Sect.from_dict(data)
+	assert_eq(back.legacy, 0)
+	assert_eq(back.prestige_peak, 80, "缺历史最高威望时至少取当前威望")
+
+
 func test_calendar() -> void:
 	var sect := _make_sect(1, 0)
 	assert_eq(sect.current_year(), 0)

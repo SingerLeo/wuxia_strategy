@@ -20,7 +20,8 @@ func _init() -> void:
 	_grid.add_theme_constant_override("h_separation", 40)
 	_grid.add_theme_constant_override("v_separation", 10)
 	box.add_child(_grid)
-	for key in ["门派", "日期", "银两", "声望", "荣耀", "弟子人数", "平均体力", "平均忠诚"]:
+	for key in ["门派", "日期", UiText.RES_SILVER, UiText.RES_PRESTIGE, "历史最高威望", "任务等级",
+			UiText.RES_LEGACY, "荣耀", "弟子人数", "平均体力", "平均忠诚"]:
 		_grid.add_child(Page.make_label(key, &"Muted"))
 		var v := Page.make_label("")
 		_grid.add_child(v)
@@ -45,8 +46,11 @@ func refresh() -> void:
 		loyalty += d.loyalty
 	_values["门派"].text = s.sect_name
 	_values["日期"].text = UiText.date_text(s)
-	_values["银两"].text = str(s.silver)
-	_values["声望"].text = str(s.prestige)
+	_values[UiText.RES_SILVER].text = str(s.silver)
+	_values[UiText.RES_PRESTIGE].text = str(s.prestige)
+	_values["历史最高威望"].text = str(s.prestige_peak)
+	_values["任务等级"].text = "%d 级" % s.task_tier()
+	_values[UiText.RES_LEGACY].text = str(s.legacy)
 	_values["荣耀"].text = str(s.honor)
 	_values["弟子人数"].text = str(n)
 	_values["平均体力"].text = "%.0f" % (float(stamina) / maxi(n, 1))

@@ -1,5 +1,5 @@
 extends GutTest
-## 招收：候选人生成、声望影响质量、要价、招收/婉拒、季节刷新。
+## 招收：候选人生成、威望影响质量、要价、招收/婉拒、季节刷新。
 
 var rng: RandomNumberGenerator
 
@@ -38,7 +38,7 @@ func test_prestige_raises_candidate_quality() -> void:
 		var b := Recruitment.generate(r2, 100, i * 3)[0]
 		plain += a.potential
 		famed += b.potential
-	assert_gt(famed / n - plain / n, 10.0, "声望 100 的候选人平均潜力应明显更高")
+	assert_gt(famed / n - plain / n, 10.0, "威望 100 的候选人平均潜力应明显更高")
 
 
 func test_recruit_spends_silver_and_joins_sect() -> void:

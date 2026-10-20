@@ -1,18 +1,18 @@
 class_name Recruitment
 extends RefCounted
 ## 山门招生（B 类，P0）：每季一批候选人，玩家花银两招收。
-## 质量随门派声望提升；要价随潜力上涨。纯逻辑，不依赖场景树。
+## 质量随门派威望提升；要价随潜力上涨。纯逻辑，不依赖场景树。
 
 ## 每季候选人数
 const CANDIDATES_PER_SEASON := 3
-## 声望转化为质量加成：每 5 点声望 +1 属性/潜力期望，最多 +25
+## 威望转化为质量加成：每 5 点威望 +1 属性/潜力期望，最多 +25
 const PRESTIGE_PER_BONUS := 5
 const MAX_QUALITY_BONUS := 25.0
 ## 要价 = PRICE_BASE + 潜力
 const PRICE_BASE := 40
 
 
-## 声望带来的质量加成（加在属性与潜力的生成均值上）
+## 威望带来的质量加成（加在属性与潜力的生成均值上）
 static func quality_bonus(prestige: int) -> float:
 	return minf(float(prestige / PRESTIGE_PER_BONUS), MAX_QUALITY_BONUS)
 
