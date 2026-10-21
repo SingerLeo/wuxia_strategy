@@ -7,6 +7,8 @@
 ## 当前这台虚拟机的实际情况（strategy-runner-1）
 - 机型 **e2-micro**（约 1 GB 内存 + 2 GB 交换空间），us-central1-c，Debian 13。内存很紧：只开 Claude 时空闲约 500 MB，**在服务器上跑全部测试时可用内存最低约 49 MB**（测试能通过，但有被系统杀进程的风险），所以测试尽量放在本机跑；想稳妥可升到 e2-medium。
 - **手机远程已经由系统服务提供**：`claude-rc.service` 开机自启，运行 `claude remote-control --name strategy-runner-1`，工作目录是 `~/wuxia_strategy`。手机 Claude App → Code 里的 `strategy-runner-1` 即可连上，不需要自己再开 tmux。
+- **godot 已软链接到 `/usr/local/bin/godot`**：systemd 服务的 PATH 不含 `~/.local/bin`，不链接的话手机会话里的 Claude 找不到 godot。
+- **升级机型不需要重装任何东西**：控制台里"停止 → 修改机型 → 启动"，磁盘、软件、GitHub 登录、`claude-rc` 服务都保留，开机自动恢复。唯一的变化是**临时外网 IP 通常会变**，我连接用的 IP 需要更新（或在控制台把外网 IP 改成"静态"）。
 - 服务管理：`sudo systemctl status claude-rc`、`sudo journalctl -u claude-rc -n 30 --no-pager`、`sudo systemctl restart claude-rc`（重启会中断当前手机会话）。
 - 给 SSH 公钥授权要走 **GCP 元数据**（实例 → 修改 → SSH 密钥，末尾备注填用户名）。直接写 `~/.ssh/authorized_keys` 会被 Google 代理定期覆盖。
 
