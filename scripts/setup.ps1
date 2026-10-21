@@ -20,6 +20,15 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# 读取固定版本（scripts\versions.env）；命令行参数或环境变量优先
+$versionsFile = Join-Path $PSScriptRoot 'versions.env'
+if (Test-Path $versionsFile) {
+  foreach ($line in Get-Content $versionsFile) {
+    if ($line -match '^\s*GODOT_VERSION=(.+)$' -and -not $GodotVersion) { $GodotVersion = $Matches[1].Trim() }
+    if ($line -match '^\s*GUT_REF=(.+)$' -and -not $GutRef) { $GutRef = $Matches[1].Trim() }
+  }
+}
+
 $GodotHome = Join-Path $env:USERPROFILE 'tools\godot'
 $results = [ordered]@{}
 function Has($cmd) { [bool](Get-Command $cmd -ErrorAction SilentlyContinue) }

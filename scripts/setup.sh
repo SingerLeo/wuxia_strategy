@@ -9,6 +9,14 @@ set -euo pipefail
 
 CHECK=0; [ "${1:-}" = "--check" ] && CHECK=1
 PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+
+# 读取固定版本（scripts/versions.env）；已设置的环境变量优先
+VERSIONS_FILE="$(cd "$(dirname "$0")" && pwd)/versions.env"
+if [ -f "$VERSIONS_FILE" ]; then
+  while IFS='=' read -r k v; do
+    case "$k" in GODOT_VERSION|GUT_REF) [ -z "${!k:-}" ] && export "$k=$v";; esac
+  done < <(grep -E '^(GODOT_VERSION|GUT_REF)=' "$VERSIONS_FILE" | tr -d '\r')
+fi
 GODOT_HOME="$HOME/.local/share/godot"
 BIN="$HOME/.local/bin"
 MISSING=0
