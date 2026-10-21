@@ -17,8 +17,11 @@ SUDO=""; [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
 have() { command -v "$1" >/dev/null 2>&1; }
 step() { printf '\n\033[1m== %s ==\033[0m\n' "$*"; }
 
+# 新建的虚拟机常常正在自动更新并占着 apt 锁，所以让 apt 最多等 5 分钟而不是直接失败
+APT="apt-get -o DPkg::Lock::Timeout=300"
+
 install_pkgs() {
-  if have apt-get; then $SUDO apt-get update -qq && $SUDO apt-get install -y -qq "$@"
+  if have apt-get; then $SUDO $APT update -qq && $SUDO $APT install -y -qq "$@"
   elif have dnf; then $SUDO dnf install -y -q "$@"
   elif have yum; then $SUDO yum install -y -q "$@"
   else echo "不支持的包管理器，请手动安装: $*"; return 1; fi
@@ -30,7 +33,7 @@ if [ "${SKIP_APT:-0}" != "1" ]; then
   install_pkgs curl unzip git tmux ca-certificates
   # Godot 无界面运行所需的运行库（缺了才会报错，装不上也不致命）
   if have apt-get; then
-    $SUDO apt-get install -y -qq libfontconfig1 libgl1 libx11-6 libxcursor1 libxi6 libxinerama1 libxrandr2 >/dev/null 2>&1 || true
+    $SUDO $APT install -y -qq libfontconfig1 libgl1 libx11-6 libxcursor1 libxi6 libxinerama1 libxrandr2 >/dev/null 2>&1 || true
   fi
 else
   echo "跳过（SKIP_APT=1）"
