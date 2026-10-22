@@ -106,7 +106,7 @@ func refresh() -> void:
 		item.set_text(0, d.display_name)
 		item.set_text(1, str(int(d.age_years())))
 		var top := UiText.top_skill(d)
-		item.set_text(2, "%s %d" % [UiText.SKILL[top], d.skills[top]])
+		item.set_text(2, "%s %d" % [UiText.STAT[top], d.stats[top]])
 		item.set_text(3, str(d.stamina))
 		item.set_text(4, _plan_text(d.id))
 		item.set_custom_color(4, ThemeBuilder.MUTED if Game.plan_of(d.id) == &"" else ThemeBuilder.GOLD)
@@ -143,7 +143,7 @@ func _sort_key(d: Disciple, col: int) -> Variant:
 	match col:
 		0: return d.display_name
 		1: return d.age_xun
-		2: return d.skills[UiText.top_skill(d)]
+		2: return d.stats[UiText.top_skill(d)]
 		3: return d.stamina
 		_: return _plan_text(d.id)
 
@@ -163,7 +163,7 @@ func _on_column_title_clicked(column: int, mouse_button: int) -> void:
 
 func _plan_text(id: int) -> String:
 	var stat := Game.plan_of(id)
-	return "休息" if stat == &"" else "修炼·" + UiText.SKILL[stat]
+	return "休息" if stat == &"" else "修炼·" + UiText.STAT[stat]
 
 
 func _on_item_selected() -> void:
@@ -190,19 +190,20 @@ func _show_detail(id: int) -> void:
 	var traits := "、".join(d.traits)
 	_detail.add_child(Page.make_label("性格：" + traits))
 
-	# 技能 / 属性 两列（数字为 1~20 分，鼠标悬停可看原始值与上限），右侧是六维雷达
+	# 武学 / 基本功 / 心智 三列（数字为 1~20 分，鼠标悬停可看原始值；可修炼项目附带上限），右侧是六维雷达
 	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 28)
-	var skill_col := _value_column("技能", Balance.SKILLS, UiText.SKILL, d, true)
-	var attr_col := _value_column("属性", Balance.ATTRIBUTES, UiText.ATTR, d, false)
-	for col in [skill_col, attr_col]:
+	columns.add_theme_constant_override("separation", 24)
+	var martial_col := _value_column(UiText.CAT_MARTIAL, Balance.MARTIAL, d)
+	var basics_col := _value_column(UiText.CAT_BASICS, Balance.BASICS, d)
+	var mind_col := _value_column(UiText.CAT_MIND, Balance.MIND, d)
+	for col in [martial_col, basics_col, mind_col]:
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		col.size_flags_stretch_ratio = 1.0
 		columns.add_child(col)
 
 	var radar_box := VBoxContainer.new()
 	radar_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	radar_box.size_flags_stretch_ratio = 1.8
+	radar_box.size_flags_stretch_ratio = 1.6
 	radar_box.add_child(Page.make_label("综合", &"Subheading"))
 	_radar = RadarChart.new()
 	_radar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -229,8 +230,8 @@ func _show_detail(id: int) -> void:
 	_detail.add_child(Page.bar_row("威望", d.prestige, 100, str(d.prestige)))
 
 
-## 一列"名称 + 分数"。with_cap 为真时，悬停提示里附带技能上限。
-func _value_column(title: String, keys: Array[StringName], names: Dictionary, d: Disciple, with_cap: bool) -> Control:
+## 一列"名称 + 分数"。可修炼的项目在悬停提示里附带上限；根骨与心智的先天上限是隐藏的。
+func _value_column(title: String, keys: Array[StringName], d: Disciple) -> Control:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 6)
 	col.add_child(Page.make_label(title, &"Subheading"))
@@ -239,11 +240,11 @@ func _value_column(title: String, keys: Array[StringName], names: Dictionary, d:
 		var score := UiText.score(raw)
 		var row := HBoxContainer.new()
 		var tip := "实际数值 %d" % raw
-		if with_cap:
+		if Balance.TRAINABLE.has(key):
 			tip += " / 上限 %d" % Growth.skill_cap(d, key)
 		row.tooltip_text = tip
 		row.add_theme_constant_override("separation", 8)
-		var name_label := Page.make_label(names[key], &"Muted")
+		var name_label := Page.make_label(UiText.STAT[key], &"Muted")
 		name_label.add_theme_font_size_override("font_size", 20)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_label)

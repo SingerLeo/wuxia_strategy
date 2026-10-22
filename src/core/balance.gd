@@ -10,25 +10,46 @@ const XUN_PER_SEASON := 3
 const STAT_MIN := 1
 const STAT_MAX := 100
 
-## 属性类：悟性、根骨、身法、智谋、魅力、领导力、定力、亲和。
-## 出生时确定，决定学习效果、技能成长速度与上限，以及门派职位表现。
-const ATTRIBUTES: Array[StringName] = [
-	&"wuxing", &"gengu", &"shenfa", &"zhimou", &"meili", &"lingdao", &"dingli", &"qinhe",
+## 弟子数值分三类，各 8 项，全部存在 Disciple.stats 里（见 docs/design.md §3.1）。
+## 武学：剑法、刀法、枪棍、拳脚、指爪、暗器、医术、毒术。靠修炼与实战提升。
+const MARTIAL: Array[StringName] = [
+	&"jian", &"dao", &"qianggun", &"quanjiao", &"zhizhua", &"anqi", &"yishu", &"dushu",
 ]
-## 技能类：直接决定武功威力，可通过修炼武学、实战提升。
-const SKILLS: Array[StringName] = [
-	&"jian", &"dao", &"gun", &"quan", &"neigong", &"qinggong", &"yishu", &"dugong",
+## 基本功：内功、轻功、软功、硬功、根骨、耐力、身法、反应。除根骨外靠修炼提升。
+const BASICS: Array[StringName] = [
+	&"neigong", &"qinggong", &"ruangong", &"yinggong", &"gengu", &"naili", &"shenfa", &"fanying",
 ]
-## 每项技能主要受哪项属性影响（成长速度与上限）。悟性对所有技能都有影响。
-const SKILL_ATTRIBUTE := {
+## 心智：悟性、定力、智谋、胆识、勤勉、魅力、统率、乐天。不能修炼，只随年龄与阅历增长。
+const MIND: Array[StringName] = [
+	&"wuxing", &"dingli", &"zhimou", &"danshi", &"qinmian", &"meili", &"tongshuai", &"letian",
+]
+## 可修炼的项目：全部武学 + 除根骨外的基本功
+const TRAINABLE: Array[StringName] = [
+	&"jian", &"dao", &"qianggun", &"quanjiao", &"zhizhua", &"anqi", &"yishu", &"dushu",
+	&"neigong", &"qinggong", &"ruangong", &"yinggong", &"naili", &"shenfa", &"fanying",
+]
+## 随年龄自然增长、有先天上限的项目：根骨 + 全部心智
+const MATURING: Array[StringName] = [
+	&"gengu",
+	&"wuxing", &"dingli", &"zhimou", &"danshi", &"qinmian", &"meili", &"tongshuai", &"letian",
+]
+## 每个可修炼项目的对应项（影响成长速度与上限）。悟性对所有修炼都有影响。
+const RELATED := {
 	&"jian": &"shenfa",
-	&"dao": &"gengu",
-	&"gun": &"gengu",
-	&"quan": &"gengu",
-	&"neigong": &"gengu",
-	&"qinggong": &"shenfa",
+	&"dao": &"yinggong",
+	&"qianggun": &"yinggong",
+	&"quanjiao": &"yinggong",
+	&"zhizhua": &"ruangong",
+	&"anqi": &"fanying",
 	&"yishu": &"zhimou",
-	&"dugong": &"zhimou",
+	&"dushu": &"zhimou",
+	&"neigong": &"dingli",
+	&"qinggong": &"gengu",
+	&"ruangong": &"gengu",
+	&"yinggong": &"gengu",
+	&"naili": &"gengu",
+	&"shenfa": &"gengu",
+	&"fanying": &"gengu",
 }
 
 const TRAITS: Array[StringName] = [
@@ -37,7 +58,8 @@ const TRAITS: Array[StringName] = [
 
 # --- 状态：最大值（占位公式，战斗做出来后再调） ---
 const HP_BASE := 60
-const HP_PER_GENGU := 0.8
+const HP_PER_GENGU := 0.5
+const HP_PER_YINGGONG := 0.3   ## 生命上限 = BASE + 根骨 × 0.5 + 硬功 × 0.3
 const NEILI_BASE := 20
 const NEILI_PER_SKILL := 2.0   ## 内力上限 = BASE + PER_SKILL × 内功等级
 
@@ -46,14 +68,17 @@ const NEILI_PER_SKILL := 2.0   ## 内力上限 = BASE + PER_SKILL × 内功等�
 const TASK_TIER_PRESTIGE: Array[int] = [0, 50, 150, 400, 1000]
 
 # --- 新弟子生成 ---
-const ATTRIBUTE_MEAN := 35.0
-const ATTRIBUTE_DEV := 12.0
+const BASICS_MEAN := 35.0            ## 可修炼基本功的初始均值
+const BASICS_DEV := 12.0
+const INNATE_MEAN := 50.0            ## 根骨与心智的先天上限均值
+const INNATE_DEV := 15.0
+const INNATE_START_RATIO := 0.6      ## 入门时根骨/心智 ≈ 先天上限的 60%，此后随年龄长到上限
 const POTENTIAL_MEAN := 60.0
 const POTENTIAL_DEV := 15.0
 const POTENTIAL_MIN := 20
 const STARTER_SKILLS := 2            ## 每名新弟子有几项"入门所学"
-const INITIAL_MAJOR_RATIO := 0.7     ## 入门所学 ≈ 对应属性的 70%
-const INITIAL_MINOR_RATIO := 0.2     ## 其他技能 ≈ 对应属性的 20%
+const INITIAL_MAJOR_RATIO := 0.7     ## 入门所学 ≈ 对应项的 70%
+const INITIAL_MINOR_RATIO := 0.2     ## 其他武学 ≈ 对应项的 20%
 const INITIAL_SKILL_DEV := 4.0
 const RECRUIT_AGE_MIN := 12
 const RECRUIT_AGE_MAX := 18
@@ -79,3 +104,11 @@ const TRAIN_STAMINA_COST := 20
 const REST_STAMINA_GAIN := 35
 const LOW_STAMINA := 30
 const LOW_STAMINA_EFFICIENCY := 0.5
+## 勤勉影响修炼体力消耗：消耗 = TRAIN_STAMINA_COST × (BASE − SPAN × 勤勉/100)，勤勉 50 → 20，100 → 15
+const QINMIAN_COST_BASE := 1.25
+const QINMIAN_COST_SPAN := 0.5
+
+# --- 心智与根骨的自然增长（每满一岁结算一次） ---
+## [年龄上界, 比例]：每年补上 (先天上限 − 当前值) × 比例，向上取整
+const MIND_MATURE_TABLE := [[18.0, 0.2], [30.0, 0.12], [50.0, 0.06], [999.0, 0.02]]
+const GENGU_MATURE_TABLE := [[18.0, 0.3], [999.0, 0.0]]   ## 根骨只在少年期长

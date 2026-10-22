@@ -14,40 +14,50 @@ func test_six_dimensions_in_order() -> void:
 	var names: Array = []
 	for x in dims:
 		names.append(x["name"])
-	assert_eq(names, ["功法", "内功", "轻功", "体魄", "聪慧", "统御"])
+	assert_eq(names, ["武功", "内功", "轻灵", "体魄", "才智", "人望"])
 
 
-func test_gongfa_is_max_of_combat_skills_and_medicine_poison() -> void:
+func test_wugong_is_max_of_combat_skills_only() -> void:
 	var d := Disciple.new()
-	d.skills[&"jian"] = 40
-	d.skills[&"yishu"] = 70
-	d.skills[&"dugong"] = 55
-	d.skills[&"neigong"] = 99   # 内功、轻功不在功法里
-	d.skills[&"qinggong"] = 99
-	assert_almost_eq(_dim(Dimensions.compute(d), &"gongfa"), 70.0, 0.001)
+	d.stats[&"jian"] = 40
+	d.stats[&"anqi"] = 62
+	d.stats[&"yishu"] = 90    # 医术、毒术不算武功
+	d.stats[&"dushu"] = 90
+	assert_almost_eq(_dim(Dimensions.compute(d), &"wugong"), 62.0, 0.001)
 
 
-func test_mixed_dimensions_use_half_and_half() -> void:
+func test_mixed_dimensions_use_weights() -> void:
 	var d := Disciple.new()
-	d.skills[&"neigong"] = 40
-	d.attributes[&"dingli"] = 20
-	d.skills[&"qinggong"] = 60
-	d.attributes[&"shenfa"] = 80
-	d.attributes[&"lingdao"] = 30
-	d.attributes[&"qinhe"] = 50
+	d.stats[&"neigong"] = 40
+	d.stats[&"dingli"] = 20
+	d.stats[&"qinggong"] = 60
+	d.stats[&"shenfa"] = 80
+	d.stats[&"fanying"] = 30
+	d.stats[&"gengu"] = 70
+	d.stats[&"yinggong"] = 50
+	d.stats[&"ruangong"] = 40
+	d.stats[&"naili"] = 20
+	d.stats[&"wuxing"] = 90
+	d.stats[&"zhimou"] = 40
+	d.stats[&"qinmian"] = 10
+	d.stats[&"tongshuai"] = 30
+	d.stats[&"meili"] = 60
+	d.stats[&"letian"] = 70
 	var dims := Dimensions.compute(d)
-	assert_almost_eq(_dim(dims, &"neigong"), 30.0, 0.001)
-	assert_almost_eq(_dim(dims, &"qinggong"), 70.0, 0.001)
-	assert_almost_eq(_dim(dims, &"tongyu"), 40.0, 0.001)
+	assert_almost_eq(_dim(dims, &"neigong"), 32.0, 0.001)   # 40×0.6 + 20×0.4
+	assert_almost_eq(_dim(dims, &"qingling"), 62.0, 0.001)  # 24 + 32 + 6
+	assert_almost_eq(_dim(dims, &"tipo"), 48.0, 0.001)      # 21 + 15 + 8 + 4
+	assert_almost_eq(_dim(dims, &"caizhi"), 54.0, 0.001)    # 36 + 16 + 2
+	assert_almost_eq(_dim(dims, &"renwang"), 51.0, 0.001)   # 12 + 18 + 21
 
 
-func test_single_attribute_dimensions() -> void:
-	var d := Disciple.new()
-	d.attributes[&"gengu"] = 77
-	d.attributes[&"zhimou"] = 33
-	var dims := Dimensions.compute(d)
-	assert_almost_eq(_dim(dims, &"tipo"), 77.0, 0.001)
-	assert_almost_eq(_dim(dims, &"conghui"), 33.0, 0.001)
+func test_mix_weights_sum_to_one() -> void:
+	for def in Dimensions.DEFS:
+		if def.has("mix"):
+			var total := 0.0
+			for k in def["mix"]:
+				total += def["mix"][k]
+			assert_almost_eq(total, 1.0, 0.001, "%s 的权重之和应为 1" % def["name"])
 
 
 func test_score_scale_is_1_to_20() -> void:

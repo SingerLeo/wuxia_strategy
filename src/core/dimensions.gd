@@ -1,25 +1,23 @@
 class_name Dimensions
 extends RefCounted
-## 六维雷达：由技能与属性合成，用于弟子详情的雷达图。
+## 六维雷达：由武学、基本功、心智合成，用于弟子详情的雷达图。
 ## 以后要改维度，只改 DEFS：
 ##   max_of：取列出项目中的最大值
-##   mix：加权求和（权重之和为 1），键可以是技能也可以是属性
+##   mix：加权求和（权重之和为 1），键可以是任意数值项
 
 const DEFS: Array[Dictionary] = [
-	{"id": &"gongfa", "name": "功法", "max_of": [&"jian", &"dao", &"gun", &"quan", &"yishu", &"dugong"]},
-	{"id": &"neigong", "name": "内功", "mix": {&"neigong": 0.5, &"dingli": 0.5}},
-	{"id": &"qinggong", "name": "轻功", "mix": {&"qinggong": 0.5, &"shenfa": 0.5}},
-	{"id": &"tipo", "name": "体魄", "mix": {&"gengu": 1.0}},
-	{"id": &"conghui", "name": "聪慧", "mix": {&"zhimou": 1.0}},
-	{"id": &"tongyu", "name": "统御", "mix": {&"lingdao": 0.5, &"qinhe": 0.5}},
+	{"id": &"wugong", "name": "武功", "max_of": [&"jian", &"dao", &"qianggun", &"quanjiao", &"zhizhua", &"anqi"]},
+	{"id": &"neigong", "name": "内功", "mix": {&"neigong": 0.6, &"dingli": 0.4}},
+	{"id": &"qingling", "name": "轻灵", "mix": {&"qinggong": 0.4, &"shenfa": 0.4, &"fanying": 0.2}},
+	{"id": &"tipo", "name": "体魄", "mix": {&"gengu": 0.3, &"yinggong": 0.3, &"ruangong": 0.2, &"naili": 0.2}},
+	{"id": &"caizhi", "name": "才智", "mix": {&"wuxing": 0.4, &"zhimou": 0.4, &"qinmian": 0.2}},
+	{"id": &"renwang", "name": "人望", "mix": {&"tongshuai": 0.4, &"meili": 0.3, &"letian": 0.3}},
 ]
 
 
-## 技能或属性的当前值（1~100）
+## 某个数值项的当前值（1~100）
 static func value_of(d: Disciple, key: StringName) -> int:
-	if d.skills.has(key):
-		return d.skills[key]
-	return d.attributes[key]
+	return d.stats[key]
 
 
 ## 返回每一维的 {id, name, value}，value 范围 1~100（浮点）

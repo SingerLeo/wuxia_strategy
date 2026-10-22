@@ -80,7 +80,7 @@ func refresh() -> void:
 		item.set_text(0, c.display_name)
 		item.set_text(1, str(int(c.age_years())))
 		var top := UiText.top_skill(c)
-		item.set_text(2, "%s %d" % [UiText.SKILL[top], c.skills[top]])
+		item.set_text(2, "%s %d" % [UiText.STAT[top], c.stats[top]])
 		item.set_text(3, "、".join(c.traits))
 		item.set_text(4, str(Recruitment.asking_price(c)))
 		if c.id == _selected_id or (to_select == null and _selected_id < 0):
@@ -117,33 +117,21 @@ func _show_detail(id: int) -> void:
 	_detail.add_child(Page.make_label("%d 岁 · %s型" % [int(c.age_years()), UiText.CURVE[c.curve]], &"Muted"))
 	_detail.add_child(Page.make_label("性格：" + "、".join(c.traits)))
 
-	# 属性预览（1~20 分；潜力是隐藏属性，不直接展示）
-	_detail.add_child(Page.make_label("资质", &"Subheading"))
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 32)
-	grid.add_theme_constant_override("v_separation", 6)
-	for a in Balance.ATTRIBUTES:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		var name_label := Page.make_label(UiText.ATTR[a], &"Muted")
-		name_label.custom_minimum_size.x = 64
-		row.add_child(name_label)
-		var num := Page.make_label(str(UiText.score(c.attributes[a])))
-		num.add_theme_font_size_override("font_size", 22)
-		row.add_child(num)
-		grid.add_child(row)
-	_detail.add_child(grid)
+	# 资质预览：心智与基本功（1~20 分；潜力与先天上限是隐藏的，不直接展示）
+	_detail.add_child(Page.make_label(UiText.CAT_MIND, &"Subheading"))
+	_detail.add_child(_score_grid(c, Balance.MIND))
+	_detail.add_child(Page.make_label(UiText.CAT_BASICS, &"Subheading"))
+	_detail.add_child(_score_grid(c, Balance.BASICS))
 
-	# 技能概览
+	# 武学概览
 	_detail.add_child(Page.make_label("入门所学", &"Subheading"))
 	var skills_text := ""
 	var first := true
-	for s in Balance.SKILLS:
-		if c.skills[s] >= 15:
+	for s in Balance.MARTIAL:
+		if c.stats[s] >= 15:
 			if not first:
 				skills_text += "、"
-			skills_text += "%s %d" % [UiText.SKILL[s], c.skills[s]]
+			skills_text += "%s %d" % [UiText.STAT[s], c.stats[s]]
 			first = false
 	_detail.add_child(Page.make_label(skills_text if skills_text != "" else "无过人之处", &"Muted"))
 
@@ -161,6 +149,25 @@ func _show_detail(id: int) -> void:
 	bar.add_child(_decline_btn)
 	_detail.add_child(bar)
 	_update_buttons(price)
+
+
+## 四列"名称 分数"的网格
+func _score_grid(c: Disciple, keys: Array[StringName]) -> GridContainer:
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 32)
+	grid.add_theme_constant_override("v_separation", 6)
+	for k in keys:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var name_label := Page.make_label(UiText.STAT[k], &"Muted")
+		name_label.custom_minimum_size.x = 64
+		row.add_child(name_label)
+		var num := Page.make_label(str(UiText.score(c.stats[k])))
+		num.add_theme_font_size_override("font_size", 22)
+		row.add_child(num)
+		grid.add_child(row)
+	return grid
 
 
 func _update_buttons(price: int) -> void:

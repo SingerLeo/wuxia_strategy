@@ -1,15 +1,19 @@
 class_name UiText
 extends RefCounted
-## 界面文字：技能名、属性名、曲线名、日期格式。以后做多语言时从这里迁移到翻译表。
+## 界面文字：数值项名、曲线名、日期格式。以后做多语言时从这里迁移到翻译表。
 
-const SKILL := {
-	&"jian": "剑法", &"dao": "刀法", &"gun": "棍法", &"quan": "拳掌",
-	&"neigong": "内功", &"qinggong": "轻功", &"yishu": "医术", &"dugong": "毒功",
+## 全部 24 个数值项的显示名（分类见 Balance.MARTIAL / BASICS / MIND）
+const STAT := {
+	&"jian": "剑法", &"dao": "刀法", &"qianggun": "枪棍", &"quanjiao": "拳脚",
+	&"zhizhua": "指爪", &"anqi": "暗器", &"yishu": "医术", &"dushu": "毒术",
+	&"neigong": "内功", &"qinggong": "轻功", &"ruangong": "软功", &"yinggong": "硬功",
+	&"gengu": "根骨", &"naili": "耐力", &"shenfa": "身法", &"fanying": "反应",
+	&"wuxing": "悟性", &"dingli": "定力", &"zhimou": "智谋", &"danshi": "胆识",
+	&"qinmian": "勤勉", &"meili": "魅力", &"tongshuai": "统率", &"letian": "乐天",
 }
-const ATTR := {
-	&"wuxing": "悟性", &"gengu": "根骨", &"shenfa": "身法", &"zhimou": "智谋",
-	&"meili": "魅力", &"lingdao": "领导力", &"dingli": "定力", &"qinhe": "亲和",
-}
+const CAT_MARTIAL := "武学"
+const CAT_BASICS := "基本功"
+const CAT_MIND := "心智"
 ## 三大资源的显示名。第三种（解锁技能树的点数）暂名"底蕴"，想改只改这里。
 const RES_SILVER := "银两"
 const RES_PRESTIGE := "威望"
@@ -35,10 +39,10 @@ static func date_text_of_xun(xun: int) -> String:
 	]
 
 
-## 当前等级最高的技能（用于名册里的"专长"列与批量修炼）
+## 当前等级最高的武学（用于名册里的"专长"列与批量修炼）
 static func top_skill(d: Disciple) -> StringName:
-	var best: StringName = Balance.SKILLS[0]
-	for s in Balance.SKILLS:
-		if d.skills[s] > d.skills[best]:
+	var best: StringName = Balance.MARTIAL[0]
+	for s in Balance.MARTIAL:
+		if d.stats[s] > d.stats[best]:
 			best = s
 	return best

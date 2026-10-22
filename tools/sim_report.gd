@@ -1,5 +1,5 @@
 extends SceneTree
-## 数值模拟报告：批量生成弟子，每人专攻自己上限最高的一项属性，逐年打印成长曲线。
+## 数值模拟报告：批量生成弟子，每人专攻自己上限最高的一项武学，逐年打印成长曲线。
 ## 用法（在项目根目录）：
 ##   godot_console --headless -s tools/sim_report.gd -- --n=500 --years=20 --seed=1
 ## 修炼策略：体力 >= TRAIN_MIN_STAMINA 就修炼，否则休息。
@@ -53,10 +53,10 @@ func _parse_args() -> Dictionary:
 	return o
 
 
-## 上限最高的属性（并列取先出现的）
+## 上限最高的武学（并列取先出现的）
 func _best_stat(d: Disciple) -> StringName:
-	var best: StringName = Balance.SKILLS[0]
-	for s in Balance.SKILLS:
+	var best: StringName = Balance.MARTIAL[0]
+	for s in Balance.MARTIAL:
 		if Growth.skill_cap(d, s) > Growth.skill_cap(d, best):
 			best = s
 	return best
@@ -67,7 +67,7 @@ func _snapshot(sect: Sect, focus: Dictionary) -> Array:
 	for d in sect.disciples:
 		var s: StringName = focus[d.id]
 		rows.append({
-			"value": d.skills[s],
+			"value": d.stats[s],
 			"cap": Growth.skill_cap(d, s),
 			"curve": d.curve,
 			"age": d.age_years(),
@@ -82,7 +82,7 @@ func _pct(sorted_vals: Array, p: float) -> int:
 func _print_report(n: int, years: int, seed_value: int, history: Dictionary, duty: float) -> void:
 	print("")
 	print("===== 数值模拟报告 =====")
-	print("弟子 %d 人，模拟 %d 年，种子 %d，每人专攻上限最高的属性" % [n, years, seed_value])
+	print("弟子 %d 人，模拟 %d 年，种子 %d，每人专攻上限最高的武学" % [n, years, seed_value])
 	print("修炼出勤率 %.0f%%（其余旬在休息恢复体力）" % (duty * 100.0))
 
 	var first: Array = history[0]
@@ -90,11 +90,11 @@ func _print_report(n: int, years: int, seed_value: int, history: Dictionary, dut
 	for r in first:
 		caps.append(r["cap"])
 	caps.sort()
-	print("专攻属性的上限：平均 %.1f  P10 %d  P50 %d  P90 %d  最高 %d" % [
+	print("专攻武学的上限：平均 %.1f  P10 %d  P50 %d  P90 %d  最高 %d" % [
 		_mean(caps), _pct(caps, 0.1), _pct(caps, 0.5), _pct(caps, 0.9), caps[caps.size() - 1]])
 
 	print("")
-	print("--- 专攻属性随时间的变化 ---")
+	print("--- 专攻武学随时间的变化 ---")
 	print("%4s %6s %5s %5s %5s %5s %7s %7s %7s" % ["年", "平均", "P10", "P50", "P90", "最高", ">=60", ">=80", "到顶"])
 	for y in CHECK_YEARS:
 		if not history.has(y):

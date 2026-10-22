@@ -13,7 +13,7 @@ const LOW_RUNWAY_XUN := 12           ## 银两只够撑这么多旬以内时提�
 var sect: Sect
 ## 门派已灭亡，本局结束；结束后不再推进回合，直到 new_game
 var over: bool = false
-## 弟子 id -> 本旬修炼的技能；不在表内或为 &"" 表示休息
+## 弟子 id -> 本旬修炼的项目（武学或基本功）；不在表内或为 &"" 表示休息
 var plans: Dictionary = {}
 ## 本季山门候选人（未招收）；每季刷新
 var candidates: Array[Disciple] = []
@@ -69,7 +69,7 @@ func rest_all() -> void:
 	state_changed.emit()
 
 
-## 批量安排：体力足够的弟子修炼各自当前最高的技能，其余休息
+## 批量安排：体力足够的弟子修炼各自当前最高的武学，其余休息
 func train_all_by_specialty() -> void:
 	for d in sect.disciples:
 		plans[d.id] = UiText.top_skill(d) if d.stamina >= AUTO_TRAIN_MIN_STAMINA else &""
@@ -109,7 +109,7 @@ func end_xun() -> void:
 		if levels > 0:
 			var d := find_disciple(r["id"])
 			var stat: StringName = plans[d.id]
-			log_added.emit("%s 的%s提升了 %d 级，现为 %d。" % [d.display_name, UiText.SKILL[stat], levels, d.skills[stat]])
+			log_added.emit("%s 的%s提升了 %d 级，现为 %d。" % [d.display_name, UiText.STAT[stat], levels, d.stats[stat]])
 	log_added.emit("—— %s ——" % UiText.date_text(sect))
 	_log_settlement()
 	if sect.xun % Balance.XUN_PER_SEASON == 0:

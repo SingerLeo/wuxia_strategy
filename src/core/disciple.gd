@@ -1,9 +1,10 @@
 class_name Disciple
 extends RefCounted
-## 弟子。三块数据：
-##   技能 skills     —— 直接决定武功威力，可成长
-##   属性 attributes —— 先天为主，决定学习效果与职位表现
-##   状态 生命/内力/体力/心情/忠诚/威望 —— 随时间与事件变化
+## 弟子。数值 stats 分三类（各 8 项，清单见 Balance）：
+##   武学 MARTIAL  —— 招式功夫，靠修炼与实战提升
+##   基本功 BASICS —— 内外功底子，靠修炼提升（根骨例外：先天，只在少年期自然长）
+##   心智 MIND     —— 不能修炼，只随年龄与阅历增长
+## 另有状态：生命/内力/体力/心情/忠诚/威望，随时间与事件变化。
 ## 成长规则见 Growth。
 
 ## 成长曲线：早慧 / 晚成 / 稳健 / 起伏
@@ -12,9 +13,9 @@ enum GrowthCurve { PRECOCIOUS, LATE, STEADY, ERRATIC }
 var id: int = 0
 var display_name: String = ""
 
-var skills: Dictionary = {}      ## StringName -> int（剑法、刀法、棍法、拳掌、内功、轻功、医术、毒功）
-var attributes: Dictionary = {}  ## StringName -> int（悟性、根骨、身法、智谋、魅力、领导力、定力、亲和）
-var xp: Dictionary = {}          ## StringName -> float，各技能已累积、尚未升级的经验
+var stats: Dictionary = {}   ## StringName -> int（1~100），武学 + 基本功 + 心智共 24 项
+var innate: Dictionary = {}  ## StringName -> int，根骨与心智的先天上限（隐藏）；年龄增长只长到这里，阅历可抬高它
+var xp: Dictionary = {}      ## StringName -> float，可修炼项目已累积、尚未升级的经验
 
 var potential: int = 50
 var curve: GrowthCurve = GrowthCurve.STEADY
@@ -31,11 +32,14 @@ var prestige: int = 0                   ## 个人威望
 
 
 func _init() -> void:
-	for a in Balance.ATTRIBUTES:
-		attributes[a] = 50
-	for s in Balance.SKILLS:
-		skills[s] = Balance.STAT_MIN
-		xp[s] = 0.0
+	for k in Balance.MARTIAL:
+		stats[k] = Balance.STAT_MIN
+	for k in Balance.BASICS + Balance.MIND:
+		stats[k] = 50
+	for k in Balance.MATURING:
+		innate[k] = 50
+	for k in Balance.TRAINABLE:
+		xp[k] = 0.0
 
 
 func age_years() -> float:
@@ -50,8 +54,8 @@ func to_dict() -> Dictionary:
 		"potential": potential,
 		"curve": int(curve),
 		"age_xun": age_xun,
-		"skills": _stringify_keys(skills),
-		"attributes": _stringify_keys(attributes),
+		"stats": _stringify_keys(stats),
+		"innate": _stringify_keys(innate),
 		"xp": _stringify_keys(xp),
 		"traits": traits.map(func(t: StringName) -> String: return String(t)),
 		"hp": hp,
@@ -70,10 +74,10 @@ static func from_dict(data: Dictionary) -> Disciple:
 	d.potential = int(data["potential"])
 	d.curve = int(data["curve"]) as GrowthCurve
 	d.age_xun = int(data["age_xun"])
-	for k in data["skills"]:
-		d.skills[StringName(k)] = int(data["skills"][k])
-	for k in data["attributes"]:
-		d.attributes[StringName(k)] = int(data["attributes"][k])
+	for k in data["stats"]:
+		d.stats[StringName(k)] = int(data["stats"][k])
+	for k in data["innate"]:
+		d.innate[StringName(k)] = int(data["innate"][k])
 	for k in data["xp"]:
 		d.xp[StringName(k)] = float(data["xp"][k])
 	d.traits.clear()
