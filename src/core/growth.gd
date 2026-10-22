@@ -88,22 +88,32 @@ static func gain_xp(d: Disciple, skill: StringName, amount: float) -> int:
 	return _apply_levels(d, skill, cap)
 
 
-## 结算一旬：修炼或休息、体力变化、年龄 +1。返回本旬报告。
+## 结算一旬：修炼或休息、体力变化、年龄 +1。返回本旬报告：
+##   {trained, xp（本旬总经验）, levels（总升级数）, gains（数值项 -> 升了几级，只含升级的项）}
+## 修炼按 plan.alloc 的时间比例分给各项，每项各自吃悟性、对应项与年龄的加成。
 ## training_mult：建筑（练武场）带来的修炼经验倍率；rest_bonus：药庐带来的额外体力恢复。
 static func settle_xun(d: Disciple, plan: TrainingPlan, rng: RandomNumberGenerator,
 		training_mult: float = 1.0, rest_bonus: int = 0) -> Dictionary:
-	var report := {"trained": false, "xp": 0.0, "levels": 0}
-	var training := plan != null and not plan.rest and Balance.TRAINABLE.has(plan.focus)
+	var report := {"trained": false, "xp": 0.0, "levels": 0, "gains": {}}
+	var training := plan != null and not plan.rest and plan.time_used > 0.0
 	if training:
 		report["trained"] = true
 		var eff := 1.0 if d.stamina >= Balance.LOW_STAMINA else Balance.LOW_STAMINA_EFFICIENCY
-		if d.stats[plan.focus] < skill_cap(d, plan.focus):
-			var gained: float = Balance.BASE_XP * plan.method_mult * wuxing_coef(d) \
-				* related_coef(d, plan.focus) * plan.master_mult * plan.facility_mult * training_mult \
-				* age_multiplier(d.curve, d.age_years(), plan.focus, rng) * eff
-			report["xp"] = gained
-			report["levels"] = gain_xp(d, plan.focus, gained)
-		d.stamina = maxi(0, d.stamina - train_stamina_cost(d))
+		var common: float = Balance.BASE_XP * plan.method_mult * wuxing_coef(d) \
+			* plan.master_mult * plan.facility_mult * training_mult * eff
+		for stat in Balance.TRAINABLE:  # 固定顺序，保证起伏型的随机序列可复现
+			var share: float = plan.alloc.get(stat, 0.0)
+			if share <= 0.0 or d.stats[stat] >= skill_cap(d, stat):
+				continue
+			var gained: float = common * share * related_coef(d, stat) \
+				* age_multiplier(d.curve, d.age_years(), stat, rng)
+			report["xp"] += gained
+			var levels := gain_xp(d, stat, gained)
+			if levels > 0:
+				report["levels"] += levels
+				report["gains"][stat] = levels
+		var cost := roundi(train_stamina_cost(d) * plan.time_used * plan.stamina_mult)
+		d.stamina = maxi(0, d.stamina - cost)
 	else:
 		d.stamina = mini(Balance.STAMINA_MAX, d.stamina + Balance.REST_STAMINA_GAIN + rest_bonus)
 	d.age_xun += 1

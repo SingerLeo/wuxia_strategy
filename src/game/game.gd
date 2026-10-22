@@ -13,8 +13,12 @@ const LOW_RUNWAY_XUN := 12           ## 银两只够撑这么多旬以内时提�
 var sect: Sect
 ## 门派已灭亡，本局结束；结束后不再推进回合，直到 new_game
 var over: bool = false
-## 弟子 id -> 本旬修炼的项目（武学或基本功）；不在表内或为 &"" 表示休息
+const REST := -1                     ## 日程 id：休息
+## 训练日程（开局为 Training.PRESETS，玩家可改、可删、可新建）
+var schedules: Array[Schedule] = []
+## 弟子 id -> 日程 id；不在表内或为 REST 表示休息
 var plans: Dictionary = {}
+var _next_schedule_id: int = 0
 ## 本季山门候选人（未招收）；每季刷新
 var candidates: Array[Disciple] = []
 var saver := SaveSystem.new()
@@ -37,6 +41,8 @@ func new_game(seed_value: int = -1) -> void:
 	for id in Catalog.START_ESTATES:
 		sect.estates[id] = Catalog.START_ESTATES[id]
 	plans.clear()
+	schedules = Training.preset_schedules()
+	_next_schedule_id = schedules.size()
 	over = false
 	for i in INITIAL_DISCIPLES:
 		sect.add_disciple(DiscipleFactory.create(rng, i, NameGen.person(rng)))
@@ -52,28 +58,106 @@ func find_disciple(id: int) -> Disciple:
 	return null
 
 
-func plan_of(id: int) -> StringName:
-	return plans.get(id, &"")
+## 弟子本旬的日程 id；REST 表示休息
+func schedule_of(id: int) -> int:
+	var sid: int = plans.get(id, REST)
+	return sid if find_schedule(sid) != null else REST
 
 
-## stat 为 &"" 表示休息
-func set_plan(id: int, stat: StringName) -> void:
-	plans[id] = stat
+## 给弟子指派日程；sid 为 REST 表示休息
+func assign(id: int, sid: int) -> void:
+	plans[id] = sid
 	state_changed.emit()
 
 
 ## 批量安排：全部休息
 func rest_all() -> void:
 	for d in sect.disciples:
-		plans[d.id] = &""
+		plans[d.id] = REST
 	state_changed.emit()
 
 
-## 批量安排：体力足够的弟子修炼各自当前最高的武学，其余休息
+## 批量安排：体力足够的弟子按专长指派日程（给专长分配时间最多的那个），其余休息
 func train_all_by_specialty() -> void:
 	for d in sect.disciples:
-		plans[d.id] = UiText.top_skill(d) if d.stamina >= AUTO_TRAIN_MIN_STAMINA else &""
+		plans[d.id] = specialty_schedule(d) if d.stamina >= AUTO_TRAIN_MIN_STAMINA else REST
 	state_changed.emit()
+
+
+## 最适合弟子专长的日程：给其最高武学分配时间比例最大的日程；没有日程则休息
+func specialty_schedule(d: Disciple) -> int:
+	var top := UiText.top_skill(d)
+	var best := REST
+	var best_share := -1.0
+	for s in schedules:
+		var share: float = s.allocation().get(top, 0.0)
+		if share > best_share:
+			best_share = share
+			best = s.id
+	return best
+
+
+# --- 训练日程 ---
+
+func find_schedule(sid: int) -> Schedule:
+	for s in schedules:
+		if s.id == sid:
+			return s
+	return null
+
+
+## 新建一个空日程
+func add_schedule(schedule_name: String = "") -> Schedule:
+	var s := Schedule.new(_next_schedule_id, schedule_name if schedule_name != "" else "新日程%d" % (_next_schedule_id + 1))
+	_next_schedule_id += 1
+	schedules.append(s)
+	state_changed.emit()
+	return s
+
+
+## 删除日程；指派了它的弟子改为休息
+func remove_schedule(sid: int) -> void:
+	var s := find_schedule(sid)
+	if s == null:
+		return
+	schedules.erase(s)
+	for id in plans:
+		if plans[id] == sid:
+			plans[id] = REST
+	state_changed.emit()
+
+
+func rename_schedule(sid: int, schedule_name: String) -> void:
+	var s := find_schedule(sid)
+	if s != null and schedule_name.strip_edges() != "":
+		s.schedule_name = schedule_name.strip_edges()
+		state_changed.emit()
+
+
+## 设置日程里某科目的份数（总数不超过 Training.SLOTS），返回实际份数
+func set_schedule_slots(sid: int, focus: StringName, n: int) -> int:
+	var s := find_schedule(sid)
+	if s == null:
+		return 0
+	var v := s.set_slots(focus, n)
+	state_changed.emit()
+	return v
+
+
+func set_schedule_intensity(sid: int, intensity: int) -> void:
+	var s := find_schedule(sid)
+	if s != null:
+		s.intensity = clampi(intensity, 0, Training.Intensity.size() - 1)
+		state_changed.emit()
+
+
+## 指派了某日程的弟子人数
+func schedule_member_count(sid: int) -> int:
+	var n := 0
+	for d in sect.disciples:
+		if schedule_of(d.id) == sid:
+			n += 1
+	return n
 
 
 ## 本旬提醒：提示玩家可能遗漏的安排
@@ -84,7 +168,7 @@ func reminders() -> Array[String]:
 	for d in sect.disciples:
 		if d.stamina < Balance.LOW_STAMINA:
 			tired += 1
-		if plan_of(d.id) == &"" and d.stamina >= IDLE_HEALTHY_STAMINA:
+		if schedule_of(d.id) == REST and d.stamina >= IDLE_HEALTHY_STAMINA:
 			idle += 1
 	if idle > 0:
 		out.append("%d 名体力充沛的弟子本旬尚未安排修炼。" % idle)
@@ -100,16 +184,18 @@ func end_xun() -> void:
 	if over:
 		return
 	var training := {}
-	for id in plans:
-		var stat: StringName = plans[id]
-		training[id] = TrainingPlan.train(stat) if stat != &"" else TrainingPlan.resting()
+	var coach := Training.coach_mults(sect)
+	for d in sect.disciples:
+		training[d.id] = TrainingPlan.from_schedule(find_schedule(schedule_of(d.id)), coach)
 	var reports := sect.advance_xun(training)
 	for r in reports:
-		var levels: int = r["report"]["levels"]
-		if levels > 0:
+		var gains: Dictionary = r["report"]["gains"]
+		if not gains.is_empty():
 			var d := find_disciple(r["id"])
-			var stat: StringName = plans[d.id]
-			log_added.emit("%s 的%s提升了 %d 级，现为 %d。" % [d.display_name, UiText.STAT[stat], levels, d.stats[stat]])
+			var parts: Array[String] = []
+			for stat in gains:
+				parts.append("%s +%d（%d）" % [UiText.STAT[stat], gains[stat], d.stats[stat]])
+			log_added.emit("%s 修炼有成：%s。" % [d.display_name, "、".join(parts)])
 	log_added.emit("—— %s ——" % UiText.date_text(sect))
 	_log_settlement()
 	if sect.xun % Balance.XUN_PER_SEASON == 0:
@@ -178,9 +264,13 @@ func load_from_slot(index: int) -> bool:
 	if state.is_empty():
 		return false
 	sect = Sect.from_dict(state["sect"])
+	schedules.clear()
+	for sd in state["schedules"]:
+		schedules.append(Schedule.from_dict(sd))
+	_next_schedule_id = int(state["next_schedule_id"])
 	plans.clear()
 	for key in state["plans"]:
-		plans[int(key)] = StringName(state["plans"][key])
+		plans[int(key)] = int(state["plans"][key])
 	candidates.clear()
 	for cd in state["candidates"]:
 		candidates.append(Disciple.from_dict(cd))
@@ -207,9 +297,11 @@ func slot_infos() -> Array[Dictionary]:
 func _build_state() -> Dictionary:
 	var plans_str := {}
 	for id in plans:
-		plans_str[str(id)] = String(plans[id])
+		plans_str[str(id)] = plans[id]
 	return {
 		"sect": sect.to_dict(),
+		"schedules": schedules.map(func(s: Schedule) -> Dictionary: return s.to_dict()),
+		"next_schedule_id": _next_schedule_id,
 		"plans": plans_str,
 		"candidates": candidates.map(func(c: Disciple) -> Dictionary: return c.to_dict()),
 		"next_id": _next_id,

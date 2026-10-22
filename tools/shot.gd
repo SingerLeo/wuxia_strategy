@@ -34,9 +34,9 @@ func _initialize() -> void:
 	await process_frame
 	await process_frame
 	if page == 1 and steps > 0:
-		# 给前几名弟子安排修炼，让截图里有内容
+		# 给前几名弟子指派日程，让截图里有内容
 		for i in 5:
-			game.set_plan(i, Balance.MARTIAL[i % Balance.MARTIAL.size()])
+			game.assign(i, i % game.schedules.size())
 	for i in steps:
 		game.end_xun()
 	main.show_page(page)

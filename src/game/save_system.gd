@@ -3,7 +3,7 @@ extends RefCounted
 ## 存档读写（H 类）：多个手动槽位 + 一个自动存档位，JSON 带版本号与时间戳。
 ## 版本不符拒绝读取。默认目录是用户目录；测试可传别的目录以免污染真实存档。
 
-const SAVE_VERSION := 2         ## v2：弟子数值改为武学/基本功/心智三类，v1 存档不再兼容
+const SAVE_VERSION := 3         ## v3：训练日程；v2：弟子数值改为武学/基本功/心智三类。旧版本存档不再兼容
 const SLOT_COUNT := 3            ## 手动槽位数
 const AUTOSAVE := -1             ## 伪槽位：自动存档（只写于每旬结束，界面只能读）
 const DEFAULT_DIR := "user://"

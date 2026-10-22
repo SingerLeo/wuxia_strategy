@@ -55,8 +55,8 @@ func _build_batch_bar() -> Control:
 	bar.add_theme_constant_override("separation", 8)
 	bar.add_child(Page.make_label("批量安排", &"Muted"))
 	var train := Button.new()
-	train.text = "按专长修炼"
-	train.tooltip_text = "体力不低于 %d 的弟子修炼各自当前最高的属性，其余休息" % Game.AUTO_TRAIN_MIN_STAMINA
+	train.text = "按专长指派日程"
+	train.tooltip_text = "体力不低于 %d 的弟子指派最侧重其专长的日程，其余休息；日程在「训练」页编辑" % Game.AUTO_TRAIN_MIN_STAMINA
 	train.pressed.connect(Game.train_all_by_specialty)
 	bar.add_child(train)
 	var rest := Button.new()
@@ -109,7 +109,7 @@ func refresh() -> void:
 		item.set_text(2, "%s %d" % [UiText.STAT[top], d.stats[top]])
 		item.set_text(3, str(d.stamina))
 		item.set_text(4, _plan_text(d.id))
-		item.set_custom_color(4, ThemeBuilder.MUTED if Game.plan_of(d.id) == &"" else ThemeBuilder.GOLD)
+		item.set_custom_color(4, ThemeBuilder.MUTED if Game.schedule_of(d.id) == Game.REST else ThemeBuilder.GOLD)
 		if d.stamina < Balance.LOW_STAMINA:
 			item.set_custom_color(3, ThemeBuilder.WARN)
 		if d.id == _selected_id or (to_select == null and _selected_id < 0):
@@ -162,8 +162,8 @@ func _on_column_title_clicked(column: int, mouse_button: int) -> void:
 
 
 func _plan_text(id: int) -> String:
-	var stat := Game.plan_of(id)
-	return "休息" if stat == &"" else "修炼·" + UiText.STAT[stat]
+	var s := Game.find_schedule(Game.schedule_of(id))
+	return "休息" if s == null else "日程·" + s.schedule_name
 
 
 func _on_item_selected() -> void:

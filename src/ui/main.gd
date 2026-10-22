@@ -112,6 +112,7 @@ func show_page(index: int) -> void:
 func _register_pages() -> void:
 	_add_page("门派", SectPage.new())
 	_add_page("弟子", RosterPage.new())
+	_add_page("训练", TrainingPage.new())
 	_add_page("招收", RecruitPage.new())
 	_add_page("建筑", BuildingPage.new())
 	_add_page("产业", EstatePage.new())

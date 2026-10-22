@@ -30,40 +30,74 @@ func test_same_seed_same_names() -> void:
 
 
 func test_default_plan_is_rest() -> void:
-	assert_eq(game.plan_of(0), &"")
+	assert_eq(game.schedule_of(0), game.REST)
 
 
-func test_set_plan_emits_state_changed() -> void:
+func test_new_game_has_preset_schedules() -> void:
+	assert_eq(game.schedules.size(), Training.PRESETS.size())
+	for s in game.schedules:
+		assert_eq(s.used_slots(), Training.SLOTS, "%s 应分满 %d 份" % [s.schedule_name, Training.SLOTS])
+
+
+func test_assign_emits_state_changed() -> void:
 	watch_signals(game)
-	game.set_plan(0, &"neigong")
-	assert_eq(game.plan_of(0), &"neigong")
+	game.assign(0, 1)
+	assert_eq(game.schedule_of(0), 1)
 	assert_signal_emitted(game, "state_changed")
 
 
-func test_end_xun_applies_plans_and_advances_time() -> void:
-	game.set_plan(0, &"neigong")
+func test_end_xun_applies_schedules_and_advances_time() -> void:
+	game.assign(0, 0)  # 剑客，强度中
+	var d: Disciple = game.find_disciple(0)
+	var jian_before: int = d.stats[&"jian"]
+	var xp_before: float = d.xp[&"jian"]
 	watch_signals(game)
 	game.end_xun()
 	assert_eq(game.sect.xun, 1)
-	var d: Disciple = game.find_disciple(0)
-	assert_eq(d.stamina, Balance.STAMINA_MAX - Growth.train_stamina_cost(d), "修炼的弟子消耗体力（多少看勤勉）")
+	assert_eq(d.stamina, Balance.STAMINA_MAX - Growth.train_stamina_cost(d), "分满 20 份、强度中：体力消耗与整旬修炼相同")
+	assert_true(d.stats[&"jian"] > jian_before or d.xp[&"jian"] > xp_before, "剑客日程练到了剑法")
 	assert_eq(game.find_disciple(1).stamina, 100, "休息的弟子体力已满")
 	assert_signal_emitted(game, "state_changed")
 	assert_signal_emitted(game, "log_added")
 
 
-func test_train_all_by_specialty_uses_top_skill_and_skips_tired() -> void:
+func test_heavy_intensity_costs_more_stamina() -> void:
+	game.set_schedule_intensity(0, Training.Intensity.HEAVY)
+	game.assign(0, 0)
+	var d: Disciple = game.find_disciple(0)
+	var expected := Balance.STAMINA_MAX - roundi(Growth.train_stamina_cost(d) * Training.INTENSITY_STAMINA[Training.Intensity.HEAVY])
+	game.end_xun()
+	assert_eq(d.stamina, expected)
+
+
+func test_train_all_by_specialty_picks_matching_schedule_and_skips_tired() -> void:
 	game.find_disciple(1).stamina = 10
 	game.train_all_by_specialty()
-	assert_eq(game.plan_of(0), UiText.top_skill(game.find_disciple(0)))
-	assert_eq(game.plan_of(1), &"", "体力不足者休息")
+	var d: Disciple = game.find_disciple(0)
+	var s: Schedule = game.find_schedule(game.schedule_of(0))
+	assert_not_null(s)
+	assert_gt(s.allocation().get(UiText.top_skill(d), 0.0), 0.0, "指派的日程要练到专长")
+	assert_eq(game.schedule_of(1), game.REST, "体力不足者休息")
 
 
 func test_rest_all_clears_plans() -> void:
 	game.train_all_by_specialty()
 	game.rest_all()
 	for d in game.sect.disciples:
-		assert_eq(game.plan_of(d.id), &"")
+		assert_eq(game.schedule_of(d.id), game.REST)
+
+
+func test_schedule_crud() -> void:
+	var s: Schedule = game.add_schedule("测试")
+	assert_eq(game.schedules.size(), Training.PRESETS.size() + 1)
+	assert_eq(game.set_schedule_slots(s.id, &"jianshu", 15), 15)
+	assert_eq(game.set_schedule_slots(s.id, &"dazuo", 10), 5, "总数不超过 20 份")
+	game.rename_schedule(s.id, "  剑修  ")
+	assert_eq(s.schedule_name, "剑修")
+	game.assign(0, s.id)
+	game.remove_schedule(s.id)
+	assert_null(game.find_schedule(s.id))
+	assert_eq(game.schedule_of(0), game.REST, "日程被删，弟子改为休息")
 
 
 func test_reminders_flag_idle_and_tired() -> void:

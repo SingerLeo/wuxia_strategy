@@ -31,7 +31,11 @@ func test_end_xun_autosaves_to_autosave_slot() -> void:
 
 
 func test_save_load_round_trip() -> void:
-	game.set_plan(0, &"neigong")
+	game.assign(0, 2)
+	var custom: Schedule = game.add_schedule("自定")
+	game.set_schedule_slots(custom.id, &"yidu", 7)
+	game.set_schedule_intensity(custom.id, Training.Intensity.HEAVY)
+	game.assign(1, custom.id)
 	game.end_xun()
 	game.end_xun()
 	game.recruit(game.candidates[0].id)
@@ -53,7 +57,13 @@ func test_save_load_round_trip() -> void:
 	assert_eq(game.sect.disciples.map(func(d: Disciple) -> String: return d.display_name), names)
 	assert_eq(game.candidates.size(), candidate_count)
 	assert_eq(game._next_id, next_id)
-	assert_eq(game.plan_of(0), &"neigong", "修炼安排也要还原")
+	assert_eq(game.schedule_of(0), 2, "日程指派也要还原")
+	assert_eq(game.schedule_of(1), custom.id)
+	var loaded: Schedule = game.find_schedule(custom.id)
+	assert_eq(loaded.schedule_name, "自定")
+	assert_eq(loaded.slots_of(&"yidu"), 7)
+	assert_eq(loaded.intensity, Training.Intensity.HEAVY)
+	assert_eq(game.add_schedule().id, custom.id + 1, "新日程 id 接着往后排")
 	assert_eq(str(game.sect.rng.state), rng_state, "随机数状态也要还原（读档后走势不变）")
 
 

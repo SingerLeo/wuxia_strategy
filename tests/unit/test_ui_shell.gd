@@ -17,7 +17,7 @@ func after_each() -> void:
 
 
 func test_has_all_pages() -> void:
-	assert_eq(main.page_count(), 6)
+	assert_eq(main.page_count(), 7)
 
 
 func test_first_page_is_visible_and_only_one_nav_pressed() -> void:
@@ -56,9 +56,9 @@ func test_roster_sorting_toggles_direction() -> void:
 func test_roster_batch_buttons_change_plans() -> void:
 	main.show_page(1)
 	Game.train_all_by_specialty()
-	assert_ne(Game.plan_of(0), &"")
+	assert_ne(Game.schedule_of(0), Game.REST)
 	Game.rest_all()
-	assert_eq(Game.plan_of(0), &"")
+	assert_eq(Game.schedule_of(0), Game.REST)
 
 
 func test_space_ends_the_xun() -> void:
@@ -70,7 +70,7 @@ func test_space_ends_the_xun() -> void:
 
 
 func test_locked_nav_entries_are_disabled_and_not_pages() -> void:
-	assert_eq(main.page_count(), 6, "江湖/事件只是锁定的导航项，不算页面")
+	assert_eq(main.page_count(), 7, "江湖/事件只是锁定的导航项，不算页面")
 
 
 func test_detail_shows_six_axis_radar_for_selected_disciple() -> void:
@@ -93,21 +93,21 @@ func test_game_over_overlay_shows_and_restart_hides() -> void:
 
 func test_end_xun_updates_pages_without_error() -> void:
 	main.show_page(1)
-	Game.set_plan(0, &"neigong")
+	Game.assign(0, 0)
 	Game.end_xun()
 	assert_eq(Game.sect.xun, 1)
 	assert_eq((main.get_page(1) as RosterPage).row_count(), Game.sect.disciples.size())
 
 
 func test_recruit_page_lists_candidates() -> void:
-	main.show_page(2)
-	var page: RecruitPage = main.get_page(2)
+	main.show_page(3)
+	var page: RecruitPage = main.get_page(3)
 	assert_eq(page.candidate_count(), Game.candidates.size())
 
 
 func test_recruit_from_page_adds_to_roster() -> void:
-	main.show_page(2)
-	var page: RecruitPage = main.get_page(2)
+	main.show_page(3)
+	var page: RecruitPage = main.get_page(3)
 	var id: int = Game.candidates[0].id
 	Game.recruit(id)
 	main.show_page(1)
@@ -153,3 +153,17 @@ func test_escape_closes_saveload_before_menu() -> void:
 	main._unhandled_key_input(_key(KEY_ESCAPE))
 	assert_false(main._saveload.visible)
 	assert_false(main.menu_visible(), "Esc 先关存档面板，而不是开菜单")
+
+
+func test_training_page_edits_schedule_and_lists_disciples() -> void:
+	main.show_page(2)
+	var page: TrainingPage = main.get_page(2)
+	assert_eq(page.selected_schedule(), Game.schedules[0].id, "默认选中第一个日程")
+	assert_eq(page.assignment_rows(), Game.sect.disciples.size())
+	var s: Schedule = Game.add_schedule("新")
+	page.select_schedule(s.id)
+	assert_eq(page.selected_schedule(), s.id)
+	page._on_slots_changed(8.0, &"jianshu")
+	assert_eq(s.slots_of(&"jianshu"), 8)
+	Game.remove_schedule(s.id)
+	assert_eq(page.selected_schedule(), Game.schedules[0].id, "所选日程被删后改选第一个")

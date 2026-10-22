@@ -11,6 +11,12 @@ const STAT := {
 	&"wuxing": "悟性", &"dingli": "定力", &"zhimou": "智谋", &"danshi": "胆识",
 	&"qinmian": "勤勉", &"meili": "魅力", &"tongshuai": "统率", &"letian": "乐天",
 }
+## 训练科目与强度（见 Training）
+const FOCUS := {
+	&"jianshu": "剑术", &"daoqiang": "刀枪", &"quanshu": "拳脚", &"anqishu": "暗器",
+	&"dazuo": "内功打坐", &"qingshen": "轻功身法", &"waijia": "外家体能", &"yidu": "医毒",
+}
+const INTENSITY: Array[String] = ["轻", "中", "重"]
 const CAT_MARTIAL := "武学"
 const CAT_BASICS := "基本功"
 const CAT_MIND := "心智"
@@ -46,3 +52,12 @@ static func top_skill(d: Disciple) -> StringName:
 		if d.stats[s] > d.stats[best]:
 			best = s
 	return best
+
+
+## 科目的训练组合，如"剑法 60%、身法 25%、反应 15%"
+static func focus_desc(focus: StringName) -> String:
+	var parts: Array[String] = []
+	var w: Dictionary = Training.FOCUS_WEIGHTS[focus]
+	for stat in w:
+		parts.append("%s %d%%" % [STAT[stat], roundi(w[stat] * 100)])
+	return "、".join(parts)
