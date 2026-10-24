@@ -1,6 +1,6 @@
 extends GutTest
 ## 山门地图：地形、占地、摆放规则、邻接加成，以及建造/移动/拆除。
-## 地图见 Catalog.MAP（12×8）：山石在 (1,1)(2,1)(1,2)(6,5)(5,7)(6,7)，池塘在 (8,1)(9,1)(8,2)(9,2)。
+## 地图见 Catalog.MAP（12×8）：山峰在 (1,1)(2,1)(1,2)(6,5)(5,7)(6,7)，河流在 (8,0)(9,0)(8,1)(9,1)(8,2)(9,2)(10,2)(11,2)。
 
 var rng: RandomNumberGenerator
 
@@ -54,8 +54,8 @@ func test_placement_rejects_out_of_bounds() -> void:
 
 func test_placement_rejects_rock_and_pond() -> void:
 	var s := _sect()
-	assert_string_contains(SectMap.placement_error(s, &"clinic", Vector2i(1, 1), 0), "山石")
-	assert_string_contains(SectMap.placement_error(s, &"clinic", Vector2i(8, 1), 0), "池塘")
+	assert_string_contains(SectMap.placement_error(s, &"clinic", Vector2i(1, 1), 0), "山峰")
+	assert_string_contains(SectMap.placement_error(s, &"clinic", Vector2i(8, 1), 0), "河流")
 
 
 func test_placement_rejects_overlap_but_not_self() -> void:
@@ -64,7 +64,7 @@ func test_placement_rejects_overlap_but_not_self() -> void:
 	assert_string_contains(SectMap.placement_error(s, &"clinic", Vector2i(4, 4), 0), "练武场")
 	assert_true(SectMap.can_place(s, &"dojo", Vector2i(3, 3), 0), "原地不算与自己重叠")
 	assert_true(SectMap.can_place(s, &"dojo", Vector2i(2, 3), 0), "向左平移一格也可以")
-	assert_false(SectMap.can_place(s, &"dojo", Vector2i(4, 3), 0), "向右平移一格会压到 (6,5) 的山石")
+	assert_false(SectMap.can_place(s, &"dojo", Vector2i(4, 3), 0), "向右平移一格会压到 (6,5) 的山峰")
 
 
 func test_building_at_finds_the_covering_building() -> void:
@@ -225,7 +225,7 @@ func test_build_at_costs_first_level_and_places() -> void:
 
 func test_build_at_fails_on_bad_spot_without_charging() -> void:
 	var g := _game()
-	assert_false(g.build_at(&"dojo", Vector2i(0, 0), 0), "3×3 会撞山石 (1,1)")
+	assert_false(g.build_at(&"dojo", Vector2i(0, 0), 0), "3×3 会撞山峰 (1,1)")
 	assert_eq(g.sect.silver, 10000)
 	assert_eq(g.sect.building_level(&"dojo"), 0)
 	assert_true(g.build_at(&"dojo", Vector2i(3, 3), 0))
@@ -247,7 +247,7 @@ func test_move_building_is_free_and_validated() -> void:
 	assert_true(g.move_building(&"clinic", Vector2i(6, 0), 0))
 	assert_eq(g.sect.layout[&"clinic"], {"x": 6, "y": 0, "rot": 0})
 	assert_eq(g.sect.silver, silver, "移动免费")
-	assert_false(g.move_building(&"clinic", Vector2i(8, 1), 0), "池塘上不行")
+	assert_false(g.move_building(&"clinic", Vector2i(8, 1), 0), "河流上不行")
 	assert_eq(g.sect.layout[&"clinic"]["x"], 6, "失败时位置不变")
 	assert_false(g.move_building(&"dojo", Vector2i(3, 3), 0), "没建的不能移动")
 

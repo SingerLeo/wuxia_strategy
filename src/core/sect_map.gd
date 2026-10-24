@@ -21,7 +21,7 @@ static func in_bounds(cell: Vector2i) -> bool:
 	return cell.x >= 0 and cell.y >= 0 and cell.x < width() and cell.y < height()
 
 
-## 地形字符：'.' 空地 '#' 山石 '~' 池塘；越界返回 ""
+## 地形字符：'.' 空地 '#' 山峰 '~' 河流；越界返回 ""
 static func terrain(cell: Vector2i) -> String:
 	if not in_bounds(cell):
 		return ""
@@ -73,8 +73,8 @@ static func placement_error(s: Sect, id: StringName, origin: Vector2i, rot: int)
 		if not in_bounds(c):
 			return "超出山门范围"
 		match terrain(c):
-			"#": return "山石挡住了"
-			"~": return "池塘挡住了"
+			"#": return "山峰挡住了"
+			"~": return "河流挡住了"
 		var other := building_at(s, c)
 		if other != &"" and other != id:
 			return "与%s重叠" % Catalog.BUILDINGS[other]["name"]

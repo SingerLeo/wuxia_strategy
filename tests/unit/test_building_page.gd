@@ -81,9 +81,9 @@ func test_building_center_follows_the_cursor() -> void:
 
 func test_invalid_spot_keeps_placing_and_explains_why() -> void:
 	page.begin_place(&"clinic")
-	assert_false(page.click_cell(page.cursor_for(Vector2i(1, 1))), "(1,1) 是山石")
+	assert_false(page.click_cell(page.cursor_for(Vector2i(1, 1))), "(1,1) 是山峰")
 	assert_eq(page.placing_id(), &"clinic", "失败后仍在摆放")
-	assert_string_contains(page.hint_text(), "山石")
+	assert_string_contains(page.hint_text(), "山峰")
 	assert_eq(Game.sect.silver, 10000, "失败不扣钱")
 
 
@@ -176,7 +176,7 @@ func test_drag_keeps_the_grabbed_cell_under_the_cursor() -> void:
 func test_drag_to_a_bad_spot_returns_to_original() -> void:
 	Game.build_at(&"dojo", Vector2i(3, 3), 0)
 	_press(Vector2i(4, 4))
-	_move(_px(Vector2i(5, 4)))                      # 左上角会到 (4,3)，压到 (6,5) 的山石
+	_move(_px(Vector2i(5, 4)))                      # 左上角会到 (4,3)，压到 (6,5) 的山峰
 	_release(Vector2i(5, 4))
 	assert_eq(Game.sect.layout[&"dojo"], {"x": 3, "y": 3, "rot": 0}, "放不下就留在原处")
 	assert_string_contains(page.hint_text(), "放回原处")
