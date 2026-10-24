@@ -22,18 +22,23 @@ const ESTATES := {
 
 # --- 建筑：花银两升级，每旬需要维护费 ---
 # costs[i]：升到第 i+1 级的花费；upkeep[i]：处于第 i+1 级时每旬的维护费
+# size：占地 [宽, 高]（格），可旋转；color：山门地图上的颜色
 const BUILDINGS := {
 	&"dojo": {
-		"name": "练武场", "desc": "每级弟子修炼经验 +10%",
+		"name": "练武场", "desc": "每级弟子修炼经验 +10%", "size": [3, 3], "color": "#7a4a3a",
 		"costs": [200, 400, 800, 1500, 3000], "upkeep": [3, 6, 10, 16, 24],
 	},
 	&"clinic": {
-		"name": "药庐", "desc": "每级弟子休息时多恢复 5 点体力",
+		"name": "药庐", "desc": "每级弟子休息时多恢复 5 点体力", "size": [2, 2], "color": "#3f6b50",
 		"costs": [150, 300, 600, 1200, 2400], "upkeep": [2, 4, 7, 11, 16],
 	},
 	&"library": {
-		"name": "藏经阁", "desc": "每级底蕴产出 +15%",
+		"name": "藏经阁", "desc": "每级底蕴产出 +15%", "size": [2, 3], "color": "#4a5a7a",
 		"costs": [250, 500, 1000, 2000, 4000], "upkeep": [3, 6, 10, 16, 24],
+	},
+	&"kitchen": {
+		"name": "伙房", "desc": "每级养育弟子的费用 -8%", "size": [2, 2], "color": "#8a6a3a",
+		"costs": [180, 360, 720, 1400, 2800], "upkeep": [2, 4, 6, 9, 13],
 	},
 }
 
@@ -41,3 +46,33 @@ const BUILDINGS := {
 const DOJO_XP_PER_LEVEL := 0.10
 const CLINIC_REST_PER_LEVEL := 5
 const LIBRARY_LEGACY_PER_LEVEL := 0.15
+const KITCHEN_UPKEEP_CUT_PER_LEVEL := 0.08
+
+# --- 拆除 ---
+const DEMOLISH_REFUND := 0.5         ## 拆除时退还已投入总花费的比例
+
+# --- 山门地图 ---
+# 每行一排格子：. 空地  # 山石（不可建）  ~ 池塘（不可建）
+const MAP := [
+	"............",
+	".##.....~~..",
+	".#......~~..",
+	"............",
+	"............",
+	"......#.....",
+	"............",
+	".....##.....",
+]
+
+# --- 位置带来的加成（邻接规则）---
+# target 是被影响的建筑，other 是它的"邻居"；两座都已摆放且满足条件时，target 的效果乘以 mult。
+#   kind = "adjacent"：两座建筑共用一条边（紧挨着）
+#   kind = "near"：两座建筑之间的最短曼哈顿距离 <= dist（相隔不到 dist-1 格）
+const SYNERGIES := [
+	{"target": &"clinic", "other": &"dojo", "kind": "adjacent", "mult": 1.5,
+		"note": "药庐紧挨练武场，随到随治"},
+	{"target": &"kitchen", "other": &"clinic", "kind": "adjacent", "mult": 1.25,
+		"note": "伙房紧挨药庐，药膳进补"},
+	{"target": &"library", "other": &"dojo", "kind": "near", "dist": 2, "mult": 0.7,
+		"note": "藏经阁离练武场太近，喧闹难静心"},
+]

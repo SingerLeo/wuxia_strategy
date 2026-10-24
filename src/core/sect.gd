@@ -12,6 +12,8 @@ var legacy: int = 0         ## 底蕴：解锁技能树（发展 / 策略 / 武�
 var honor: int = 0          ## 荣耀值：支线任务等长期成就的成绩，不是可花费资源。界面暂不显示，见 docs/scope.md
 var estates: Dictionary = {}    ## StringName -> 已购数量，见 Catalog.ESTATES
 var buildings: Dictionary = {}  ## StringName -> 等级，见 Catalog.BUILDINGS
+## 建筑在山门地图上的位置：id -> {"x", "y", "rot"}，见 SectMap。未出现表示未摆放（效果照常，只是没有位置加成）。
+var layout: Dictionary = {}
 var disciples: Array[Disciple] = []
 var rng: RandomNumberGenerator
 ## 最近一旬的结算：{income, upkeep_disciples, upkeep_buildings, shortfall, legacy_gain}
@@ -117,6 +119,7 @@ func to_dict() -> Dictionary:
 		"honor": honor,
 		"estates": _stringify_keys(estates),
 		"buildings": _stringify_keys(buildings),
+		"layout": _stringify_keys(layout),
 		"rng_seed": str(rng.seed),
 		"rng_state": str(rng.state),
 		"disciples": disciples.map(func(d: Disciple) -> Dictionary: return d.to_dict()),
@@ -139,6 +142,9 @@ static func from_dict(data: Dictionary) -> Sect:
 		s.estates[StringName(key)] = int(data["estates"][key])
 	for key in data.get("buildings", {}):
 		s.buildings[StringName(key)] = int(data["buildings"][key])
+	for key in data.get("layout", {}):
+		var p: Dictionary = data["layout"][key]
+		s.layout[StringName(key)] = {"x": int(p["x"]), "y": int(p["y"]), "rot": int(p["rot"])}
 	for dd in data["disciples"]:
 		s.disciples.append(Disciple.from_dict(dd))
 	return s

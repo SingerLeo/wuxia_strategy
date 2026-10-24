@@ -14,7 +14,13 @@ static func estate_income(s: Sect) -> int:
 
 
 static func disciple_upkeep(s: Sect) -> int:
-	return s.disciples.size() * Catalog.DISCIPLE_UPKEEP
+	var base := s.disciples.size() * Catalog.DISCIPLE_UPKEEP
+	return roundi(base * (1.0 - kitchen_cut(s)))
+
+
+## 伙房带来的养育费减免比例（0~0.9）
+static func kitchen_cut(s: Sect) -> float:
+	return minf(0.9, Catalog.KITCHEN_UPKEEP_CUT_PER_LEVEL * s.building_level(&"kitchen") * SectMap.factor(s, &"kitchen"))
 
 
 static func building_upkeep(s: Sect) -> int:
@@ -52,13 +58,29 @@ static func next_building_cost(id: StringName, level: int) -> int:
 
 # --- 建筑带来的效果 ---
 
+## 建筑当前效果的一句话说明（已含位置倍率）；未建返回 ""
+static func effect_text(s: Sect, id: StringName) -> String:
+	var level := s.building_level(id)
+	if level <= 0:
+		return ""
+	var f := SectMap.factor(s, id)
+	match id:
+		&"dojo": return "弟子修炼经验 +%d%%" % roundi(Catalog.DOJO_XP_PER_LEVEL * level * f * 100.0)
+		&"clinic": return "休息多恢复 %d 点体力" % rest_bonus(s)
+		&"library": return "底蕴产出 +%d%%" % roundi(Catalog.LIBRARY_LEGACY_PER_LEVEL * level * f * 100.0)
+		&"kitchen": return "养育费 -%d%%" % roundi(kitchen_cut(s) * 100.0)
+	return ""
+
+
+# 每座建筑的效果 = 每级效果 × 等级 × 位置倍率（SectMap.factor，邻接规则）
+
 static func training_mult(s: Sect) -> float:
-	return 1.0 + Catalog.DOJO_XP_PER_LEVEL * s.building_level(&"dojo")
+	return 1.0 + Catalog.DOJO_XP_PER_LEVEL * s.building_level(&"dojo") * SectMap.factor(s, &"dojo")
 
 
 static func rest_bonus(s: Sect) -> int:
-	return Catalog.CLINIC_REST_PER_LEVEL * s.building_level(&"clinic")
+	return roundi(Catalog.CLINIC_REST_PER_LEVEL * s.building_level(&"clinic") * SectMap.factor(s, &"clinic"))
 
 
 static func legacy_mult(s: Sect) -> float:
-	return 1.0 + Catalog.LIBRARY_LEGACY_PER_LEVEL * s.building_level(&"library")
+	return 1.0 + Catalog.LIBRARY_LEGACY_PER_LEVEL * s.building_level(&"library") * SectMap.factor(s, &"library")

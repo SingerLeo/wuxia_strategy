@@ -248,6 +248,54 @@ func upgrade_building(id: StringName) -> bool:
 	return true
 
 
+## 在山门地图上建造：花第一级的费用，并摆在 origin（左上角格子）、旋转 rot。
+## 已建过、位置不合法或银两不足返回 false，失败时不扣钱。
+func build_at(id: StringName, origin: Vector2i, rot: int = 0) -> bool:
+	if not Catalog.BUILDINGS.has(id) or sect.building_level(id) > 0:
+		return false
+	var cost := Economy.next_building_cost(id, 0)
+	if sect.silver < cost or not SectMap.can_place(sect, id, origin, rot):
+		return false
+	sect.silver -= cost
+	sect.buildings[id] = 1
+	sect.layout[id] = {"x": origin.x, "y": origin.y, "rot": rot % 2}
+	log_added.emit("花费 %d 两在山门建起%s。" % [cost, Catalog.BUILDINGS[id]["name"]])
+	state_changed.emit()
+	return true
+
+
+## 移动（或首次摆放）已建成的建筑，免费。位置不合法返回 false。
+func move_building(id: StringName, origin: Vector2i, rot: int = 0) -> bool:
+	if sect.building_level(id) <= 0 or not SectMap.can_place(sect, id, origin, rot):
+		return false
+	sect.layout[id] = {"x": origin.x, "y": origin.y, "rot": rot % 2}
+	log_added.emit("把%s挪到了新的位置。" % Catalog.BUILDINGS[id]["name"])
+	state_changed.emit()
+	return true
+
+
+## 已投入的总花费（建造 + 历次升级）
+func building_invested(id: StringName) -> int:
+	var total := 0
+	var costs: Array = Catalog.BUILDINGS[id]["costs"]
+	for i in sect.building_level(id):
+		total += int(costs[i])
+	return total
+
+
+## 拆除建筑：退还已投入的一部分，等级归零，清除位置。
+func demolish_building(id: StringName) -> bool:
+	if not Catalog.BUILDINGS.has(id) or sect.building_level(id) <= 0:
+		return false
+	var refund := int(building_invested(id) * Catalog.DEMOLISH_REFUND)
+	sect.silver += refund
+	sect.buildings.erase(id)
+	sect.layout.erase(id)
+	log_added.emit("拆除%s，退还 %d 两。" % [Catalog.BUILDINGS[id]["name"], refund])
+	state_changed.emit()
+	return true
+
+
 # --- 存档 / 读档（H 类，多槽位） ---
 
 ## 存入指定槽位（0..SLOT_COUNT-1），写日志；每旬的自动存档走 AUTOSAVE 槽不打扰日志

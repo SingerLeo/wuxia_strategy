@@ -12,6 +12,8 @@ func _initialize() -> void:
 	var destroy := false
 	var menu := false
 	var saves := false
+	var demo_map := false  # 给山门地图摆几座建筑，用来截建筑页
+	var ghost := ""
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--page="):
 			page = int(a.get_slice("=", 1))
@@ -25,6 +27,10 @@ func _initialize() -> void:
 			menu = true
 		elif a == "--saves":
 			saves = true
+		elif a == "--demo-map":
+			demo_map = true
+		elif a.begins_with("--demo-ghost="):
+			ghost = a.get_slice("=", 1)  # 形如 --demo-ghost=6,0 ：移动药庐时鼠标悬停的格子
 
 	var game = root.get_node("Game")
 	game.new_game(7)
@@ -39,7 +45,23 @@ func _initialize() -> void:
 			game.assign(i, i % game.schedules.size())
 	for i in steps:
 		game.end_xun()
+	if demo_map:
+		game.sect.silver = 10000
+		game.build_at(&"dojo", Vector2i(3, 3), 0)
+		game.build_at(&"clinic", Vector2i(6, 3), 0)
+		game.build_at(&"kitchen", Vector2i(8, 3), 0)
+		game.build_at(&"library", Vector2i(10, 4), 0)
+		game.upgrade_building(&"dojo")
 	main.show_page(page)
+	if demo_map:
+		# 选中练武场，并给"药庐"预览一个摆放位置，看右侧详情与地图预览
+		var bp = main.get_page(page)
+		bp.select(&"dojo")
+		if ghost != "":
+			var xy := ghost.split(",")
+			bp.begin_place(&"clinic")
+			bp.map()._hover = Vector2i(int(xy[0]), int(xy[1]))
+			bp.hover_cell(bp.map()._hover)
 	if destroy:
 		game.debug_disband_all()
 	if menu:
