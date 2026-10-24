@@ -120,6 +120,44 @@ static func active_synergies(s: Sect, id: StringName) -> Array[Dictionary]:
 	return out
 
 
+## 默认的"抓取点"：让建筑的中心大致跟着鼠标走（偶数边长时偏向右下）。
+## 鼠标所在格 cursor 对应的左上角 = cursor - grab。
+static func default_grab(id: StringName, rot: int = 0) -> Vector2i:
+	return size_of(id, rot) / 2
+
+
+## 假设把 id 摆在 origin，哪些已摆放的建筑会因此与它产生位置影响：{建筑 id: 倍率}。
+## 既包括"它受邻居影响"（target 是它），也包括"邻居受它影响"（other 是它）。
+## 只用于摆放预览：临时改动 layout 后立刻还原。
+static func preview_links(s: Sect, id: StringName, origin: Vector2i, rot: int) -> Dictionary:
+	var had := s.layout.has(id)
+	var old: Dictionary = s.layout.get(id, {})
+	s.layout[id] = {"x": origin.x, "y": origin.y, "rot": rot % 2}
+	var out := {}
+	for rule in Catalog.SYNERGIES:
+		var other: StringName
+		if rule["target"] == id:
+			other = rule["other"]
+		elif rule["other"] == id:
+			other = rule["target"]
+		else:
+			continue
+		var d := distance(s, id, other)
+		if d < 0:
+			continue
+		var hit := false
+		match rule["kind"]:
+			"adjacent": hit = (d == 1)
+			"near": hit = (d <= int(rule["dist"]))
+		if hit:
+			out[other] = float(out.get(other, 1.0)) * float(rule["mult"])
+	if had:
+		s.layout[id] = old
+	else:
+		s.layout.erase(id)
+	return out
+
+
 ## 假设把 id 摆在 origin（旋转 rot），它的位置倍率会是多少（用于摆放时的预览）。
 ## 临时改动 layout 后立刻还原，不留下副作用。
 static func preview_factor(s: Sect, id: StringName, origin: Vector2i, rot: int) -> float:

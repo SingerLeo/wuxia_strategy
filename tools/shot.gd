@@ -60,8 +60,8 @@ func _initialize() -> void:
 		if ghost != "":
 			var xy := ghost.split(",")
 			bp.begin_place(&"clinic")
-			bp.map()._hover = Vector2i(int(xy[0]), int(xy[1]))
-			bp.hover_cell(bp.map()._hover)
+			# 参数是药庐想落的左上角格子；换算成鼠标所在格再悬停
+			bp.hover_cell(bp.cursor_for(Vector2i(int(xy[0]), int(xy[1]))))
 	if destroy:
 		game.debug_disband_all()
 	if menu:

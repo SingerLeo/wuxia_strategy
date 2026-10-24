@@ -113,6 +113,42 @@ func test_unplaced_buildings_have_neutral_factor() -> void:
 	assert_almost_eq(SectMap.factor(s, &"clinic"), 1.0, 0.001, "没摆放就没有位置加成，也不受罚")
 
 
+# --- 预览辅助 ---
+
+func test_default_grab_is_the_center() -> void:
+	assert_eq(SectMap.default_grab(&"dojo", 0), Vector2i(1, 1))
+	assert_eq(SectMap.default_grab(&"clinic", 0), Vector2i(1, 1))
+	assert_eq(SectMap.default_grab(&"library", 0), Vector2i(1, 1))   # 2×3
+	assert_eq(SectMap.default_grab(&"library", 1), Vector2i(1, 1))   # 3×2
+
+
+func test_preview_links_for_the_building_being_placed() -> void:
+	var s := _sect()
+	_place(s, &"dojo", 3, 3)
+	var links := SectMap.preview_links(s, &"clinic", Vector2i(6, 3), 0)
+	assert_eq(links.keys(), [&"dojo"])
+	assert_almost_eq(float(links[&"dojo"]), 1.5, 0.001)
+	assert_true(SectMap.preview_links(s, &"clinic", Vector2i(10, 0), 0).is_empty())
+	var noisy := SectMap.preview_links(s, &"library", Vector2i(3, 0), 0)
+	assert_almost_eq(float(noisy[&"dojo"]), 0.7, 0.001, "藏经阁挨着练武场：藏经阁受影响")
+
+
+func test_preview_links_include_neighbors_affected_by_the_new_building() -> void:
+	var s := _sect()
+	_place(s, &"clinic", 6, 3)
+	var links := SectMap.preview_links(s, &"dojo", Vector2i(3, 3), 0)
+	assert_almost_eq(float(links[&"clinic"]), 1.5, 0.001, "练武场放在药庐旁边，药庐得益")
+
+
+func test_preview_links_leave_the_layout_untouched() -> void:
+	var s := _sect()
+	_place(s, &"dojo", 3, 3)
+	var before := s.layout.duplicate(true)
+	SectMap.preview_links(s, &"clinic", Vector2i(6, 3), 0)
+	SectMap.preview_links(s, &"dojo", Vector2i(0, 5), 1)     # 已摆放的也只是临时试一下
+	assert_eq(s.layout, before)
+
+
 # --- 位置倍率接入经济 ---
 
 func test_clinic_bonus_scales_rest_recovery() -> void:

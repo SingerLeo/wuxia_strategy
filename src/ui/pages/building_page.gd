@@ -2,8 +2,14 @@ class_name BuildingPage
 extends Page
 ## 建筑：在山门地图上摆放、移动、升级、拆除门派建筑。位置会影响效果（邻接规则见 Catalog.SYNERGIES）。
 ##
-## 操作：右侧点"建造" → 地图上出现预览（绿可放/红不可放），左键放下，R 旋转，右键/Esc 取消。
-##       点地图上的建筑 → 选中并在右侧看详情，可升级、移动、拆除。
+## 操作：
+##   建造  右侧点"建造" → 地图上出现预览（建筑中心跟着鼠标；绿可放、红不可放；有加成的邻居会高亮）
+##         左键放下，滚轮 / R 旋转，右键 / Esc 取消
+##   移动  直接按住地图上的建筑拖到新位置再松开；放不下会自动回原处
+##   选中  点地图上的建筑或右侧清单，可升级、移动、拆除（拆除要点两次确认）
+##
+## 术语：cursor 指鼠标所在的格子；origin 指建筑占地的左上角格子；
+##       origin = cursor - grab，grab 是"鼠标抓着建筑的哪一格"。
 
 var _map: SectMapView
 var _hint: Label
@@ -14,6 +20,9 @@ var _info: VBoxContainer
 
 var _placing: StringName = &""    ## 正在摆放（新建或移动）的建筑；空表示没有
 var _rot: int = 0
+var _grab: Vector2i = Vector2i.ZERO
+var _cursor: Vector2i = SectMap.NONE
+var _dragging := false
 var _selected: StringName = &""
 var _confirm_demolish := false
 var _hint_text := ""
@@ -25,7 +34,7 @@ func _init() -> void:
 	root.add_theme_constant_override("separation", 16)
 	add_child(root)
 
-	# 左：标题 + 地图 + 提示
+	# 左：标题 + 地图 + 提示 + 图例
 	var left := VBoxContainer.new()
 	left.add_theme_constant_override("separation", 8)
 	root.add_child(left)
@@ -36,6 +45,8 @@ func _init() -> void:
 	_map = SectMapView.new()
 	_map.hovered.connect(_on_hovered)
 	_map.clicked.connect(_on_clicked)
+	_map.drag_started.connect(_on_drag_started)
+	_map.dropped.connect(_on_dropped)
 	_map.rotate_requested.connect(rotate_ghost)
 	_map.cancel_requested.connect(cancel)
 	left.add_child(_map)
@@ -52,6 +63,7 @@ func _init() -> void:
 	_rotate_btn.text = "旋转 (R)"
 	_rotate_btn.pressed.connect(rotate_ghost)
 	bar.add_child(_rotate_btn)
+	left.add_child(Page.make_label("▲ 位置加成   ▼ 位置受影响   山、水不可建   拖动建筑可直接移动", &"Muted"))
 
 	# 右：清单 + 详情
 	var scroll := ScrollContainer.new()
@@ -90,8 +102,24 @@ func placing_rot() -> int:
 	return _rot
 
 
+func is_dragging() -> bool:
+	return _dragging
+
+
 func hint_text() -> String:
 	return _hint_text
+
+
+## 当前预览的左上角格子；没有预览为 SectMap.NONE
+func ghost_origin() -> Vector2i:
+	if _placing == &"" or _cursor == SectMap.NONE:
+		return SectMap.NONE
+	return _cursor - _grab
+
+
+## 想让建筑落在 origin，鼠标应当在哪一格（测试用）
+func cursor_for(origin: Vector2i) -> Vector2i:
+	return origin + _grab
 
 
 ## 进入摆放模式：未建的建筑是"建造"，已建的是"移动"。银两不足的新建会被拒绝。
@@ -104,29 +132,68 @@ func begin_place(id: StringName) -> bool:
 		return false
 	_placing = id
 	_selected = &""
+	_dragging = false
 	_confirm_demolish = false
 	_rot = int(s.layout[id]["rot"]) if s.layout.has(id) else 0
-	_sync_map()
+	_grab = SectMap.default_grab(id, _rot)
+	_refresh_ghost()
 	_set_hint(_placing_hint())
 	_rebuild_side()
 	return true
+
+
+## 开始拖动 cell 处的建筑（只有已摆放的建筑能拖）。按住的那一格会一直跟着鼠标。
+func begin_drag(cell: Vector2i) -> bool:
+	var s := Game.sect
+	var id := SectMap.building_at(s, cell) if cell != SectMap.NONE else &""
+	if id == &"":
+		return false
+	var p: Dictionary = s.layout[id]
+	_placing = id
+	_selected = id
+	_dragging = true
+	_confirm_demolish = false
+	_rot = int(p["rot"])
+	_grab = cell - Vector2i(p["x"], p["y"])
+	_cursor = cell
+	_refresh_ghost()
+	_set_hint(_placing_hint())
+	_rebuild_side()
+	return true
+
+
+## 拖动后松开。放得下就移动过去，放不下（或松在地图外）就回原处。
+func drop(cell: Vector2i) -> bool:
+	if not _dragging:
+		return false
+	_dragging = false
+	var id := _placing
+	if cell == SectMap.NONE:
+		_end_placing("已放回原处。")
+		return false
+	var origin := cell - _grab
+	if Game.move_building(id, origin, _rot):
+		_selected = id
+		_end_placing("已把%s挪到新位置。" % Catalog.BUILDINGS[id]["name"])
+		return true
+	_end_placing("放不下：%s，已放回原处。" % SectMap.placement_error(Game.sect, id, origin, _rot))
+	return false
 
 
 func rotate_ghost() -> void:
 	if _placing == &"":
 		return
 	_rot = (_rot + 1) % 2
-	_sync_map()
-	_update_hover_hint(_map.hover_cell())
+	_grab = SectMap.default_grab(_placing, _rot)   # 旋转后改回以中心为抓取点
+	_refresh_ghost()
+	_update_hover_hint()
 
 
 func cancel() -> void:
 	if _placing == &"":
 		return
-	_placing = &""
-	_sync_map()
-	_set_hint("已取消。")
-	_rebuild_side()
+	_dragging = false
+	_end_placing("已取消。")
 
 
 ## 在格子上点击（左键放下 / 选中；右键取消）。返回是否产生了有效操作。
@@ -137,6 +204,7 @@ func click_cell(cell: Vector2i, button: int = MOUSE_BUTTON_LEFT) -> bool:
 	if button != MOUSE_BUTTON_LEFT:
 		return false
 	if _placing != &"":
+		_cursor = cell
 		return _try_place(cell)
 	var id := SectMap.building_at(Game.sect, cell) if cell != SectMap.NONE else &""
 	select(id)
@@ -153,17 +221,17 @@ func select(id: StringName) -> void:
 
 
 func hover_cell(cell: Vector2i) -> void:
-	_update_hover_hint(cell)
+	_cursor = cell
+	_refresh_ghost()
+	_update_hover_hint()
 
 
 func refresh() -> void:
 	var s := Game.sect
 	_map.sect = s
-	# 建筑被拆除/读档后，选中或摆放的对象可能已经不存在
+	# 建筑被拆除/读档后，选中的对象可能已经不存在
 	if _selected != &"" and s.building_level(_selected) <= 0:
 		_selected = &""
-	if _placing != &"" and s.building_level(_placing) <= 0 and not Catalog.BUILDINGS.has(_placing):
-		_placing = &""
 	_summary.text = "%s %d  ·  建筑维护 %d 两/旬" % [UiText.RES_SILVER, s.silver, Economy.building_upkeep(s)]
 	_sync_map()
 	if _hint_text == "":
@@ -173,11 +241,29 @@ func refresh() -> void:
 
 # --- 内部 ---
 
+func _end_placing(message: String) -> void:
+	_placing = &""
+	_dragging = false
+	_refresh_ghost()
+	_set_hint(message)
+	_rebuild_side()
+
+
+## 把预览状态（位置、旋转、邻居高亮）同步给地图控件
+func _refresh_ghost() -> void:
+	var origin := ghost_origin()
+	_map.ghost_id = _placing
+	_map.ghost_rot = _rot
+	_map.ghost_origin = origin
+	_map.links = {}
+	if _placing != &"" and origin != SectMap.NONE and SectMap.can_place(Game.sect, _placing, origin, _rot):
+		_map.links = SectMap.preview_links(Game.sect, _placing, origin, _rot)
+	_sync_map()
+
+
 func _sync_map() -> void:
 	_map.sect = Game.sect
 	_map.selected_id = _selected
-	_map.ghost_id = _placing
-	_map.ghost_rot = _rot
 	_rotate_btn.visible = _placing != &""
 	_map.queue_redraw()
 
@@ -188,61 +274,80 @@ func _set_hint(text: String) -> void:
 
 
 func _idle_hint() -> String:
-	return "点击地图上的建筑查看详情；在右侧选一座建筑来建造。"
+	return "点击地图上的建筑查看详情，按住拖动可移动；在右侧选一座建筑来建造。"
 
 
 func _placing_hint() -> String:
 	var info: Dictionary = Catalog.BUILDINGS[_placing]
 	var sz := SectMap.size_of(_placing, _rot)
 	var verb := "移动" if Game.sect.building_level(_placing) > 0 else "建造"
-	return "%s%s（占 %d×%d）：左键放下，R 旋转，右键/Esc 取消。" % [verb, info["name"], sz.x, sz.y]
+	return "%s%s（占 %d×%d）：左键放下，滚轮或 R 旋转，右键 / Esc 取消。" % [verb, info["name"], sz.x, sz.y]
 
 
 func _on_hovered(cell: Vector2i) -> void:
-	_update_hover_hint(cell)
+	hover_cell(cell)
 
 
 func _on_clicked(cell: Vector2i, button: int) -> void:
 	click_cell(cell, button)
 
 
+func _on_drag_started(cell: Vector2i) -> void:
+	begin_drag(cell)
+
+
+func _on_dropped(cell: Vector2i) -> void:
+	drop(cell)
+
+
 ## 摆放时，悬停到哪就把"能不能放、放这里有什么加成"写在提示里
-func _update_hover_hint(cell: Vector2i) -> void:
+func _update_hover_hint() -> void:
 	if _placing == &"":
 		return
-	if cell == SectMap.NONE:
+	var origin := ghost_origin()
+	if origin == SectMap.NONE:
 		_set_hint(_placing_hint())
 		return
-	var err := SectMap.placement_error(Game.sect, _placing, cell, _rot)
+	var err := SectMap.placement_error(Game.sect, _placing, origin, _rot)
 	if err != "":
 		_set_hint("不能放在这里：%s。" % err)
 		return
-	var f := SectMap.preview_factor(Game.sect, _placing, cell, _rot)
+	var f := SectMap.preview_factor(Game.sect, _placing, origin, _rot)
 	var text := "可以放在这里。"
 	if f > 1.001:
 		text += "  位置加成 ×%.2f ▲" % f
 	elif f < 0.999:
 		text += "  位置影响 ×%.2f ▼" % f
+	var others := SectMap.preview_links(Game.sect, _placing, origin, _rot)
+	for other in others:
+		if float(others[other]) != 1.0 and not _placing_is_target_of(other):
+			text += "\n对%s的影响 ×%.2f" % [Catalog.BUILDINGS[other]["name"], others[other]]
 	_set_hint(text)
 
 
-func _try_place(cell: Vector2i) -> bool:
-	if cell == SectMap.NONE:
+## other 是不是"影响 _placing 的邻居"（即 _placing 是被影响者）。用来避免把同一条规则重复写两次。
+func _placing_is_target_of(other: StringName) -> bool:
+	for rule in Catalog.SYNERGIES:
+		if rule["target"] == _placing and rule["other"] == other:
+			return true
+	return false
+
+
+func _try_place(cursor: Vector2i) -> bool:
+	if cursor == SectMap.NONE:
 		return false
 	var id := _placing
+	var origin := cursor - _grab
 	var ok := false
 	if Game.sect.building_level(id) > 0:
-		ok = Game.move_building(id, cell, _rot)
+		ok = Game.move_building(id, origin, _rot)
 	else:
-		ok = Game.build_at(id, cell, _rot)
+		ok = Game.build_at(id, origin, _rot)
 	if ok:
-		_placing = &""
 		_selected = id
-		_set_hint("已放下%s。" % Catalog.BUILDINGS[id]["name"])
-		_sync_map()
-		_rebuild_side()
+		_end_placing("已放下%s。" % Catalog.BUILDINGS[id]["name"])
 	else:
-		var err := SectMap.placement_error(Game.sect, id, cell, _rot)
+		var err := SectMap.placement_error(Game.sect, id, origin, _rot)
 		_set_hint("放不下：%s。" % (err if err != "" else "银两不足"))
 	return ok
 
