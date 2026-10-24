@@ -56,6 +56,54 @@ static func _poly(ci: CanvasItem, pts: Array, color: Color) -> void:
 		ci.draw_colored_polygon(clean, color)
 
 
+## 带 UV 的多边形（贴纹理用），同样会去掉重复点；pts 与 uvs 一一对应
+static func _poly_tex(ci: CanvasItem, pts: Array, uvs: Array, color: Color, tex: Texture2D) -> void:
+	var p := PackedVector2Array()
+	var t := PackedVector2Array()
+	for i in pts.size():
+		if p.is_empty() or p[p.size() - 1].distance_to(pts[i]) > 0.5:
+			p.append(pts[i])
+			t.append(uvs[i])
+	if p.size() > 2 and p[0].distance_to(p[p.size() - 1]) < 0.5:
+		p.remove_at(p.size() - 1)
+		t.remove_at(t.size() - 1)
+	if p.size() >= 3:
+		ci.draw_colored_polygon(p, color, t, tex)
+
+
+# 瓦片纹理：一张可无缝重复的灰度图，4 列 × 3 行瓦，每片瓦有轻微的明暗差异。
+# 圆弧形的瓦垄（左右暗中间亮）+ 每行上沿被上一行压住的阴影 + 下沿一圈亮边。
+const TILE_COLS := 6
+const TILE_ROWS := 4
+const TILE_W := 13
+const TILE_H := 11
+const TILE_SCALE := 1.0    ## 纹理像素 / 屏幕像素。保持 1.0（像素对像素）：缩小绘制没有 mipmap 会产生摩尔纹
+static var _roof_tex: ImageTexture
+
+
+static func roof_texture() -> ImageTexture:
+	if _roof_tex != null:
+		return _roof_tex
+	var w := TILE_COLS * TILE_W
+	var h := TILE_ROWS * TILE_H
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	for y in h:
+		for x in w:
+			var col := x / TILE_W
+			var row := y / TILE_H
+			var fx := float(x % TILE_W) / TILE_W
+			var fy := float(y % TILE_H) / TILE_H
+			var cyl := 0.80 + 0.20 * cos((fx - 0.5) * TAU)          # 圆筒形的明暗：中间亮、两侧暗
+			var lip := 0.66 + 0.40 * pow(fy, 1.6)                   # 上沿被压住较暗，下沿外露较亮
+			if fy > 0.9:
+				lip -= (fy - 0.9) * 2.4                             # 最下面一道细缝
+			var r := float(hash2(col, row, 3) % 100) / 100.0
+			var v := clampf(cyl * lip * (0.93 + 0.14 * r), 0.0, 1.0)
+			img.set_pixel(x, y, Color(v, v, v, 1.0))
+	_roof_tex = ImageTexture.create_from_image(img)
+	return _roof_tex
+
+
 static func _box(bg: Color, border: Color, radius: int, bw: int) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
@@ -199,15 +247,28 @@ static func draw_mountain(ci: CanvasItem, r: Rect2, x: int, y: int) -> void:
 # =====================================================================
 
 ## 画一座建筑。box 是它占地的矩形；level 用来画等级牌；alpha 用于摆放预览；t 是动画时间（炊烟）。
-static func draw_house(ci: Control, id: StringName, box: Rect2, level: int, alpha: float, t: float) -> void:
+static func draw_house(ci: Control, id: StringName, box: Rect2, level: int, alpha: float, t: float, rot: int = 0) -> void:
 	var font := ci.get_theme_default_font()
 	var fs := ci.get_theme_default_font_size()
+
+	# 有外部美术（assets/art/buildings/）就直接用图：宽度对齐占地，底边对齐占地底边，向上可以超出
+	var sprite := ArtLibrary.building_texture(id, level, rot)
+	if sprite != null:
+		var w := box.size.x
+		var h := w * sprite.get_height() / sprite.get_width()
+		ci.draw_texture_rect(sprite, Rect2(box.position.x, box.end.y - h, w, h), false, Color(1, 1, 1, alpha))
+		_level_chip(ci, font, fs, box, level, alpha)
+		return
+
 	var accent := Color(Catalog.BUILDINGS[id]["color"])
 	var name_text: String = Catalog.BUILDINGS[id]["name"]
 
-	# 地面投影与台基
-	ci.draw_style_box(_box(Color(0, 0, 0, 0.32 * alpha), Color(0, 0, 0, 0), 12, 0), Rect2(box.position + Vector2(4, 6), box.size))
+	# 地面投影（一层层叠出柔和的边缘，光从左上来，影子落向右下）与台基
+	for i in 6:
+		ci.draw_style_box(_box(Color(0, 0, 0, 0.07 * alpha), Color(0, 0, 0, 0), 12 + i * 2, 0),
+			Rect2(box.position + Vector2(5, 8), box.size).grow(i * 2))
 	ci.draw_style_box(_box(_a(STONE, alpha), _a(STONE_DARK, alpha), 8, 2), box)
+	ci.draw_rect(Rect2(box.position + Vector2(3, 3), Vector2(box.size.x - 6, 2)), Color(1, 1, 1, 0.16 * alpha), true)   # 台基上沿的高光
 
 	var inner := box.grow(-7)
 	var plaque_at := Vector2.ZERO
@@ -254,21 +315,29 @@ static func _roof(ci: CanvasItem, r: Rect2, accent: Color, alpha: float) -> void
 
 	var ru0: float = minf(half, L / 2.0)
 	var ru1: float = L - ru0
-	var c_top := _a(ROOF_LIGHT, alpha)
-	var c_bot := _a(ROOF_DARK, alpha)
-	var c_end := _a(ROOF, alpha)
-	_poly(ci, [P.call(0, 0), P.call(L, 0), P.call(ru1, half), P.call(ru0, half)], c_top)
-	_poly(ci, [P.call(0, W), P.call(L, W), P.call(ru1, half), P.call(ru0, half)], c_bot)
-	_poly(ci, [P.call(0, 0), P.call(0, W), P.call(ru0, half)], c_end)
-	_poly(ci, [P.call(L, 0), P.call(L, W), P.call(ru1, half)], c_end)
-
-	# 瓦垄：平行于正脊的细线，间隔 5 像素
-	var tile := Color(0, 0, 0, 0.22 * alpha)
-	var d := 4.0
-	while d < half - 1.0:
-		ci.draw_line(P.call(d, d), P.call(L - d, d), tile, 1.0)
-		ci.draw_line(P.call(d, W - d), P.call(L - d, W - d), tile, 1.0)
-		d += 5.0
+	# 四个坡面贴上瓦片纹理。纹理的"行"沿着屋檐方向，"瓦垄"顺着坡度；
+	# 屋檐一侧是瓦的外露下沿，所以靠上/靠左的坡面纹理要翻转，让亮边始终朝着屋檐。
+	var tex := roof_texture()
+	var tsz := Vector2(tex.get_width(), tex.get_height())
+	var long_uv := func(u: float, v: float, flip: float) -> Vector2:
+		return Vector2(u, flip * v) * TILE_SCALE / tsz
+	var end_uv := func(u: float, v: float, flip: float) -> Vector2:
+		return Vector2(v, flip * u) * TILE_SCALE / tsz
+	var c_top := _a(Color("#a9b3c3"), alpha)     # 朝北的坡面受光多，亮一些
+	var c_bot := _a(Color("#6c7583"), alpha)
+	var c_end := _a(Color("#8892a1"), alpha)
+	var top_pts := [P.call(0, 0), P.call(L, 0), P.call(ru1, half), P.call(ru0, half)]
+	var top_uvs := [long_uv.call(0, 0, -1), long_uv.call(L, 0, -1), long_uv.call(ru1, half, -1), long_uv.call(ru0, half, -1)]
+	_poly_tex(ci, top_pts, top_uvs, c_top, tex)
+	var bot_pts := [P.call(0, W), P.call(L, W), P.call(ru1, half), P.call(ru0, half)]
+	var bot_uvs := [long_uv.call(0, W, 1), long_uv.call(L, W, 1), long_uv.call(ru1, half, 1), long_uv.call(ru0, half, 1)]
+	_poly_tex(ci, bot_pts, bot_uvs, c_bot, tex)
+	var left_pts := [P.call(0, 0), P.call(0, W), P.call(ru0, half)]
+	var left_uvs := [end_uv.call(0, 0, -1), end_uv.call(0, W, -1), end_uv.call(ru0, half, -1)]
+	_poly_tex(ci, left_pts, left_uvs, c_end, tex)
+	var right_pts := [P.call(L, 0), P.call(L, W), P.call(ru1, half)]
+	var right_uvs := [end_uv.call(L, 0, 1), end_uv.call(L, W, 1), end_uv.call(ru1, half, 1)]
+	_poly_tex(ci, right_pts, right_uvs, c_end, tex)
 
 	# 四条戗脊（屋角斜线）和正脊
 	var edge := Color(0, 0, 0, 0.45 * alpha)

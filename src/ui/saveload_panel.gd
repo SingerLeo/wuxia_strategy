@@ -16,6 +16,7 @@ func _init() -> void:
 	add_child(center)
 
 	var panel := PanelContainer.new()
+	panel.theme_type_variation = &"OrnatePanel"
 	panel.custom_minimum_size = Vector2(760, 0)
 	center.add_child(panel)
 

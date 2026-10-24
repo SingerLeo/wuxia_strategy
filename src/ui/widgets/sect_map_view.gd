@@ -37,6 +37,8 @@ var _armed := false       ## 左键按下、尚未判定是点击还是拖动
 var _dragging := false
 var _time := 0.0
 var _acc := 0.0
+var _terrain: TerrainLayer
+var _ground_art: Texture2D
 
 
 func _init() -> void:
@@ -44,12 +46,19 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	focus_mode = Control.FOCUS_ALL
 	mouse_entered.connect(grab_focus)
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED   # 屋顶瓦片纹理要重复铺
+	_terrain = TerrainLayer.new()
+	add_child(_terrain)
+	# 有外部的整张地图底图（assets/art/map/ground.png）就用它，不再用着色器和程序画的山、树
+	_ground_art = ArtLibrary.map_background()
+	_terrain.visible = _ground_art == null
 
 
 func _process(delta: float) -> void:
 	if not animate or not is_visible_in_tree():
 		return
 	_time += delta
+	_terrain.set_time(_time)   # 河水每帧都在流动，由着色器自己算，不需要重绘整张地图
 	_acc += delta
 	if _acc >= ANIM_STEP:
 		_acc = 0.0
@@ -146,7 +155,12 @@ func _draw() -> void:
 	var font := get_theme_default_font()
 	var fs := get_theme_default_font_size()
 
-	draw_rect(Rect2(Vector2.ZERO, size), ThemeBuilder.PANEL, true)
+	# 地面和河流由子节点 TerrainLayer（着色器）画在最底下；这里先画一圈边框，再画山、树和网格线
+	var inner := Rect2(Vector2(PAD, PAD), Vector2(SectMap.width() * CELL, SectMap.height() * CELL))
+	if _ground_art != null:
+		draw_texture_rect(_ground_art, inner, false)
+	draw_rect(Rect2(Vector2.ZERO, size), ThemeBuilder.PANEL, false, PAD * 2.0)
+	draw_rect(inner.grow(1), Color("#000000", 0.5), false, 2.0)
 	_draw_terrain()
 
 	if sect == null:
@@ -166,7 +180,7 @@ func _draw() -> void:
 			draw_rect(building_box(id).grow(-3), Color(1, 1, 1, 0.3), false, 1.5)
 			continue
 		var box := building_box(id).grow(-3)
-		MapArt.draw_house(self, id, box, sect.building_level(id), 1.0, _time)
+		MapArt.draw_house(self, id, box, sect.building_level(id), 1.0, _time, int(sect.layout[id]["rot"]))
 		_draw_markers(font, fs, id, box, id == hover_id)
 
 	# 邻居高亮（摆放预览时）
@@ -183,7 +197,7 @@ func _draw() -> void:
 	if ghost_id != &"" and ghost_origin != SectMap.NONE:
 		var ok := SectMap.can_place(sect, ghost_id, ghost_origin, ghost_rot)
 		var box := Rect2(cell_rect(ghost_origin).position, Vector2(SectMap.size_of(ghost_id, ghost_rot)) * CELL).grow(-3)
-		MapArt.draw_house(self, ghost_id, box, maxi(1, sect.building_level(ghost_id)), 0.62, _time)
+		MapArt.draw_house(self, ghost_id, box, maxi(1, sect.building_level(ghost_id)), 0.62, _time, ghost_rot)
 		for c in SectMap.cells(ghost_id, ghost_origin, ghost_rot):
 			if SectMap.in_bounds(c):
 				draw_rect(cell_rect(c).grow(-1), GOOD if ok else BAD, true)
@@ -193,20 +207,8 @@ func _draw() -> void:
 func _draw_terrain() -> void:
 	var w := SectMap.width()
 	var h := SectMap.height()
-	# 第一层：地面、水面
-	for y in h:
-		for x in w:
-			var cell := Vector2i(x, y)
-			var r := cell_rect(cell)
-			if SectMap.terrain(cell) == "~":
-				MapArt.draw_water(self, r, x, y,
-					_is_water(x, y - 1), _is_water(x + 1, y), _is_water(x, y + 1), _is_water(x - 1, y),
-					_is_water(x - 1, y - 1), _is_water(x + 1, y - 1), _is_water(x + 1, y + 1), _is_water(x - 1, y + 1), _time)
-			else:
-				MapArt.draw_ground(self, r, x, y)
-
-	# 网格线（淡淡的，帮助对位）
-	var line := Color(0, 0, 0, 0.18)
+	# 网格线（很淡，只是帮助对位；地面和河流已经由 TerrainLayer 画好了）
+	var line := Color(0, 0, 0, 0.10)
 	for x in w + 1:
 		var px := PAD + x * CELL
 		draw_line(Vector2(px, PAD), Vector2(px, PAD + h * CELL), line, 1.0)
@@ -214,7 +216,9 @@ func _draw_terrain() -> void:
 		var py := PAD + y * CELL
 		draw_line(Vector2(PAD, py), Vector2(PAD + w * CELL, py), line, 1.0)
 
-	# 第二层：树木与山峰，从上到下画，山脚盖住后面的山
+	# 第二层：树木与山峰，从上到下画，山脚盖住后面的山。外部底图已经包含山和树，就不再画
+	if _ground_art != null:
+		return
 	for y in h:
 		for x in w:
 			var cell := Vector2i(x, y)
@@ -228,12 +232,6 @@ func _draw_terrain() -> void:
 						MapArt.draw_tree(self, r.position + Vector2(20 + hh % 24, 52), 0.9)
 					elif hh % 17 == 5:
 						MapArt.draw_bamboo(self, r.position + Vector2(32, 54))
-
-
-## 河流越界的一侧视为"水还在延伸"，这样河流从地图边缘流出去时不会画出一道岸
-func _is_water(x: int, y: int) -> bool:
-	var c := Vector2i(x, y)
-	return not SectMap.in_bounds(c) or SectMap.terrain(c) == "~"
 
 
 ## 位置加成标记，以及选中/悬停的描边

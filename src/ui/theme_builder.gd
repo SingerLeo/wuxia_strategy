@@ -42,14 +42,16 @@ static func build() -> Theme:
 	t.set_color("font_color", "Muted", MUTED)
 	t.set_color("default_color", "RichTextLabel", TEXT)
 
-	# 面板
-	t.set_stylebox("panel", "PanelContainer", box(PANEL))
+	# 面板：默认是低调的漆面板；OrnatePanel 带金色内描线和角饰，用于菜单、对话框等重要面板
+	t.set_stylebox("panel", "PanelContainer", UiSkin.panel(false))
+	t.set_type_variation(&"OrnatePanel", &"PanelContainer")
+	t.set_stylebox("panel", "OrnatePanel", UiSkin.panel(true))
 
 	# 普通按钮
-	t.set_stylebox("normal", "Button", box(PANEL_ALT, BORDER, 4, 1, 10))
-	t.set_stylebox("hover", "Button", box(Color("#35312a"), GOLD_DARK, 4, 1, 10))
-	t.set_stylebox("pressed", "Button", box(GOLD_DARK, GOLD, 4, 1, 10))
-	t.set_stylebox("disabled", "Button", box(PANEL, BORDER, 4, 1, 10))
+	t.set_stylebox("normal", "Button", UiSkin.button("normal", "normal"))
+	t.set_stylebox("hover", "Button", UiSkin.button("normal", "hover"))
+	t.set_stylebox("pressed", "Button", UiSkin.button("normal", "pressed"))
+	t.set_stylebox("disabled", "Button", UiSkin.button("normal", "disabled"))
 	t.set_stylebox("focus", "Button", StyleBoxEmpty.new())
 	t.set_color("font_color", "Button", TEXT)
 	t.set_color("font_hover_color", "Button", GOLD)
@@ -58,18 +60,18 @@ static func build() -> Theme:
 
 	# 导航按钮
 	t.set_type_variation(&"NavButton", &"Button")
-	t.set_stylebox("normal", "NavButton", box(PANEL, PANEL, 4, 1, 12))
-	t.set_stylebox("hover", "NavButton", box(PANEL_ALT, PANEL_ALT, 4, 1, 12))
-	t.set_stylebox("pressed", "NavButton", box(GOLD_DARK, GOLD, 4, 1, 12))
-	t.set_stylebox("hover_pressed", "NavButton", box(GOLD_DARK, GOLD, 4, 1, 12))
-	t.set_stylebox("disabled", "NavButton", box(PANEL, PANEL, 4, 1, 12))
+	t.set_stylebox("normal", "NavButton", UiSkin.button("nav", "normal"))
+	t.set_stylebox("hover", "NavButton", UiSkin.button("nav", "hover"))
+	t.set_stylebox("pressed", "NavButton", UiSkin.button("nav", "pressed"))
+	t.set_stylebox("hover_pressed", "NavButton", UiSkin.button("nav", "pressed"))
+	t.set_stylebox("disabled", "NavButton", UiSkin.button("nav", "disabled"))
 
 	# 主操作按钮
 	t.set_type_variation(&"PrimaryButton", &"Button")
-	t.set_stylebox("normal", "PrimaryButton", box(GOLD_DARK, GOLD, 4, 1, 14))
-	t.set_stylebox("hover", "PrimaryButton", box(Color("#7a6538"), GOLD, 4, 1, 14))
-	t.set_stylebox("pressed", "PrimaryButton", box(GOLD, GOLD, 4, 1, 14))
-	t.set_color("font_pressed_color", "PrimaryButton", BG)
+	t.set_stylebox("normal", "PrimaryButton", UiSkin.button("primary", "normal"))
+	t.set_stylebox("hover", "PrimaryButton", UiSkin.button("primary", "hover"))
+	t.set_stylebox("pressed", "PrimaryButton", UiSkin.button("primary", "pressed"))
+	t.set_stylebox("disabled", "PrimaryButton", UiSkin.button("primary", "disabled"))
 
 	# 下拉框弹出菜单
 	t.set_stylebox("panel", "PopupMenu", box(PANEL_ALT, GOLD_DARK))
@@ -95,3 +97,9 @@ static func build() -> Theme:
 	t.set_constant("v_separation", "Tree", 6)
 
 	return t
+
+## 窗口背景：暗色宣纸 + 水墨远山（着色器）。若 assets/art/ui/background.png 存在则由调用方改用图片。
+static func background_material() -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = load("res://src/ui/shaders/background.gdshader")
+	return m

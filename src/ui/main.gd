@@ -24,10 +24,25 @@ var _locked_header_added := false
 func _ready() -> void:
 	theme = ThemeBuilder.build()
 
-	var bg := ColorRect.new()
-	bg.color = ThemeBuilder.BG
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	# 窗口背景：有 assets/art/ui/background.png 就用图，否则用着色器画的宣纸与水墨远山
+	var bg_tex := ArtLibrary.window_background()
+	if bg_tex != null:
+		var pic := TextureRect.new()
+		pic.texture = bg_tex
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(pic)
+	else:
+		var bg := ColorRect.new()
+		bg.color = ThemeBuilder.BG
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var bg_material := ThemeBuilder.background_material()
+		bg.material = bg_material
+		bg.resized.connect(func() -> void: bg_material.set_shader_parameter("res", bg.size))
+		add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -227,6 +242,7 @@ func _build_game_over_overlay() -> void:
 	_overlay.add_child(center)
 
 	var panel := PanelContainer.new()
+	panel.theme_type_variation = &"OrnatePanel"
 	panel.custom_minimum_size = Vector2(460, 0)
 	center.add_child(panel)
 
@@ -261,6 +277,7 @@ func _build_menu_overlay() -> void:
 	_menu.add_child(center)
 
 	var panel := PanelContainer.new()
+	panel.theme_type_variation = &"OrnatePanel"
 	panel.custom_minimum_size = Vector2(360, 0)
 	center.add_child(panel)
 
